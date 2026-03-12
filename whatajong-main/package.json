@@ -17,9 +17,9 @@
     "electron:prebuild": "electron-vite build",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
-    "build:win": "pnpm run build && electron-builder --win --config",
-    "build:mac": "pnpm run build && electron-builder --mac --config",
-    "build:linux": "pnpm run build && electron-builder --linux --config"
+    "build:win": "pnpm run electron:prebuild && electron-builder --win nsis portable --publish never --config",
+    "build:mac": "pnpm run electron:prebuild && electron-builder --mac --publish never --config",
+    "build:linux": "pnpm run electron:prebuild && electron-builder --linux --publish never --config"
   },
   "type": "module",
   "main": "./out/main/index.js",
