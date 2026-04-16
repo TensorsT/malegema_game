@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bmkp7t7jbxyeg"]
 
 [ext_resource type="Script" path="res://scripts/start_menu.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scene/WhatajongBackdrop.tscn" id="2_backdrop"]
 
 [node name="StartMenu" type="Control" unique_id=1880328710]
 layout_mode = 3
@@ -11,14 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="." unique_id=1571796568]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.0862745, 0.133333, 0.223529, 1)
+[node name="Background" parent="." unique_id=1571796568 instance=ExtResource("2_backdrop")]
 
 [node name="MainPanel" type="Panel" parent="." unique_id=1486015078]
 layout_mode = 1

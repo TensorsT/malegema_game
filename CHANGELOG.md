@@ -24,3 +24,14 @@
 - 将麻将牌拆分为独立场景 `Tile.tscn`，与主游戏界面解耦。
 - 在 `board.tscn` 中替换为正常的麻将牌显示，并保留基础的配对消除逻辑。
 - 为牌面加入基础的悬停与点击反馈，完成最小可玩局的原型验证。
+## [0.1.2] 2026-04-16（代码仍在0.1.0里）
+### 新增
+- 将 `whatajong` 的背景层视觉迁移到 `first-demo(0.1.0)`，新增可复用的 `WhatajongBackdrop` 场景与脚本，用于统一底色、纹理层、山形前景与氛围叠层。
+- 新增 `WhatajongUI` 样式辅助脚本，统一面板、按钮与标题字体风格，开始菜单和棋盘页现在共用同一套 UI 皮肤。
+### 调整
+- `gameStar.tscn` 与 `board.tscn` 改为实例化 `WhatajongBackdrop`，不再各自维护单色背景块。
+- 开始菜单、帮助弹窗、设置弹窗与棋盘主面板统一切换为 `whatajong` 风格的字体、按钮和面板边框表现。
+### 修复
+- 修复 `WhatajongUI.apply_panel()` 对 `PopupPanel` 的类型兼容问题，避免 Godot 解析期报错 `argument 1 should be "Control" but is "PopupPanel"`。
+### 说明
+- 牌面在配对后触发其余牌变化，当前仍属于特殊牌模块（如 `mutations`、`winds`、`jokers`）的既有功能，本次未改动该玩法逻辑。

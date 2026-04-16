@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dj3qf0h37l167"]
 
 [ext_resource type="Script" path="res://scripts/board.gd" id="1_board"]
+[ext_resource type="PackedScene" path="res://scene/WhatajongBackdrop.tscn" id="2_backdrop"]
 
 
 [node name="Board" type="Control" unique_id=1789914968]
@@ -13,14 +14,7 @@ grow_vertical = 2
 script = ExtResource("1_board")
 
 
-[node name="Background" type="ColorRect" parent="." unique_id=628232073]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.0431373, 0.0666667, 0.101961, 1)
+[node name="Background" parent="." unique_id=628232073 instance=ExtResource("2_backdrop")]
 
 [node name="GamePanel" type="Panel" parent="." unique_id=1894885971]
 layout_mode = 1

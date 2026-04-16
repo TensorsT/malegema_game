@@ -22,7 +22,15 @@ const BOARD_PADDING := Vector2(54, 34)
 
 @onready var board_container: Control = $GamePanel/VBoxContainer/BoardContainer
 @onready var tile_layer: Control = $GamePanel/VBoxContainer/BoardContainer/TileLayer
+@onready var game_panel: Panel = $GamePanel
+@onready var title_label: Label = $GamePanel/VBoxContainer/TitleLabel
 @onready var status_label: Label = $GamePanel/VBoxContainer/StatusLabel
+@onready var board_shadow: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardShadow
+@onready var board_surface: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardSurface
+@onready var board_inset: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardInset
+@onready var board_glow: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardGlow
+@onready var restart_button: Button = $GamePanel/VBoxContainer/ActionRow/RestartButton
+@onready var back_button: Button = $GamePanel/VBoxContainer/ActionRow/BackButton
 
 var tile_db: Dictionary = {}
 var tile_nodes: Dictionary = {}
@@ -43,6 +51,7 @@ var game_state := {
 
 
 func _ready() -> void:
+	_apply_whatajong_ui()
 	_setup_audio()
 	board_container.resized.connect(_on_board_container_resized)
 	_on_board_container_resized()
@@ -90,6 +99,22 @@ func _setup_new_round() -> void:
 
 	_refresh_tiles_state()
 	status_label.text = "找到可解牌局，当前分数：0"
+
+
+func _apply_whatajong_ui() -> void:
+	WhatajongUI.apply_panel(game_panel, WhatajongUI.COLOR_DOT, Color(0.95, 0.92, 0.84, 0.78), 30, 28)
+	WhatajongUI.apply_display_font(title_label)
+	WhatajongUI.apply_display_font(restart_button)
+	WhatajongUI.apply_display_font(back_button)
+	WhatajongUI.apply_button(restart_button, WhatajongUI.COLOR_CRACK, 0.90)
+	WhatajongUI.apply_button(back_button, WhatajongUI.COLOR_DOT, 0.90)
+	WhatajongUI.tint_label(title_label, WhatajongUI.COLOR_DOT.darkened(0.38))
+	WhatajongUI.tint_body_text(status_label)
+
+	board_shadow.color = Color(0.03, 0.04, 0.05, 0.34)
+	board_surface.color = Color(0.13, 0.22, 0.20, 0.92)
+	board_inset.color = Color(0.17, 0.30, 0.27, 0.64)
+	board_glow.color = Color(0.82, 0.91, 0.86, 0.10)
 
 
 func _on_tile_pressed(tile_id: String) -> void:
