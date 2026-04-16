@@ -97,8 +97,29 @@ const RESPONSIVE_MAP := [
 	],
 ]
 
+const DEMO_LAYERED_LAYOUTS := {
+	12: [
+		{"x": 2, "y": 7, "z": 0},
+		{"x": 4, "y": 7, "z": 0},
+		{"x": 6, "y": 7, "z": 0},
+		{"x": 8, "y": 7, "z": 0},
+		{"x": 10, "y": 7, "z": 0},
+		{"x": 12, "y": 7, "z": 0},
+		{"x": 3, "y": 6, "z": 1},
+		{"x": 5, "y": 6, "z": 1},
+		{"x": 7, "y": 6, "z": 1},
+		{"x": 9, "y": 6, "z": 1},
+		{"x": 4, "y": 5, "z": 2},
+		{"x": 8, "y": 5, "z": 2},
+	],
+}
+
 
 static func get_limited_map(tiles: int) -> Array:
+	if DEMO_LAYERED_LAYOUTS.has(tiles):
+		var layout: Array = DEMO_LAYERED_LAYOUTS.get(tiles, [])
+		return _build_map_from_positions(layout)
+
 	var limited_map: Array = RESPONSIVE_MAP.duplicate(true)
 
 	for z in range(limited_map.size()):
@@ -111,3 +132,40 @@ static func get_limited_map(tiles: int) -> Array:
 					row[x] = null
 
 	return limited_map
+
+
+static func _build_map_from_positions(positions: Array) -> Array:
+	var max_x := 0
+	var max_y := 0
+	var max_z := 0
+
+	for entry in positions:
+		var pos: Dictionary = entry
+		max_x = maxi(max_x, int(pos["x"]) + 1)
+		max_y = maxi(max_y, int(pos["y"]) + 1)
+		max_z = maxi(max_z, int(pos["z"]))
+
+	var map: Array = []
+	for z in range(max_z + 1):
+		var level: Array = []
+		for y in range(max_y + 1):
+			var row: Array = []
+			for x in range(max_x + 1):
+				row.append(N)
+			level.append(row)
+		map.append(level)
+
+	var tile_id := 1
+	for entry in positions:
+		var pos: Dictionary = entry
+		var x := int(pos["x"])
+		var y := int(pos["y"])
+		var z := int(pos["z"])
+
+		map[z][y][x] = tile_id
+		map[z][y][x + 1] = tile_id
+		map[z][y + 1][x] = tile_id
+		map[z][y + 1][x + 1] = tile_id
+		tile_id += 1
+
+	return map

@@ -147,7 +147,7 @@ func create_tile(tile_type: String, grid_x: int, grid_y: int, layer_z: int) -> v
 	if icon_map.has(tile_type):
 		icon = icon_map[tile_type]
 
-	tile.setup(tile_id, tile_type, icon)
+	tile.setup(str(tile_id), tile_type, icon)
 	tile.position = grid_to_world(grid_x, grid_y, layer_z)
 	tile.z_index = layer_z * 100 + grid_y
 	tile.tile_clicked.connect(_on_tile_clicked)
@@ -162,7 +162,8 @@ func grid_to_world(grid_x: int, grid_y: int, layer_z: int) -> Vector2:
 	) + LAYER_OFFSET * layer_z + BOARD_OFFSET
 
 
-func _on_tile_clicked(tile_id: int) -> void:
+func _on_tile_clicked(tile_id_value) -> void:
+	var tile_id := int(tile_id_value)
 	if not tile_states.has(tile_id):
 		return
 
