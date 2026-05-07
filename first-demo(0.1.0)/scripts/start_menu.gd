@@ -20,12 +20,14 @@ extends Control
 
 func _ready() -> void:
 	_apply_whatajong_ui()
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	music_slider.value = 70.0
 	fullscreen_checkbox.button_pressed = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
 
 func _on_start_button_pressed() -> void:
 	status_label.text = "进入最小可玩局..."
-	get_tree().change_scene_to_file("res://scene/board.tscn")
+	RunManager.start_new_run()
+	RunManager.enter_stage(RunManager.STAGE_GAME)
 
 func _on_help_button_pressed() -> void:
 	help_popup.popup_centered()

@@ -39,9 +39,12 @@ var icon_cache: Dictionary = {}
 var click_player: AudioStreamPlayer
 var match_player: AudioStreamPlayer
 var board_tween: Tween
+var _layout_scale: float = 1.0
 
 var game_state := {
 	"points": 0,
+	"coins": 0,
+	"time": 0.0,
 	"end_condition": "",
 	"dragon_run": {},
 	"phoenix_run": {},
@@ -56,6 +59,13 @@ func _ready() -> void:
 	board_container.resized.connect(_on_board_container_resized)
 	_on_board_container_resized()
 	_setup_new_round()
+	set_process(true)
+
+
+func _process(delta: float) -> void:
+	if String(game_state.get("end_condition", "")) != "":
+		return
+	game_state["time"] = float(game_state.get("time", 0.0)) + delta
 
 
 func _setup_new_round() -> void:
@@ -63,6 +73,8 @@ func _setup_new_round() -> void:
 	tile_nodes.clear()
 	game_state = {
 		"points": 0,
+		"coins": 0,
+		"time": 0.0,
 		"end_condition": "",
 		"dragon_run": {},
 		"phoenix_run": {},
@@ -75,10 +87,18 @@ func _setup_new_round() -> void:
 
 	board_container.scale = Vector2.ONE
 	board_container.rotation_degrees = 0.0
+	restart_button.text = "重新开局"
 
-	var deck := _build_deck(int(MAX_TILES / 2.0))
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
+	var deck: Array[Dictionary] = []
+	var rng: RandomNumberGenerator
+	if RunManager.has_active_run():
+		deck = RunManager.deck
+		rng = RunManager.get_round_rng()
+		_apply_round_header()
+	else:
+		deck = _build_deck(int(MAX_TILES / 2.0))
+		rng = RandomNumberGenerator.new()
+		rng.randomize()
 	game_state["rng"] = rng
 	tile_db = SetupTiles.setup_tiles(rng, deck)
 
@@ -98,7 +118,11 @@ func _setup_new_round() -> void:
 		tile_nodes[tile_id] = tile_node
 
 	_refresh_tiles_state()
-	status_label.text = "找到可解牌局，当前分数：0"
+	if RunManager.has_active_run():
+		var round := RunManager.get_round()
+		status_label.text = "目标分数：%d，当前分数：0" % int(round.get("pointObjective", 0))
+	else:
+		status_label.text = "找到可解牌局，当前分数：0"
 
 
 func _apply_whatajong_ui() -> void:
@@ -141,6 +165,8 @@ func _on_tile_pressed(tile_id: String) -> void:
 	_refresh_tiles_state()
 	_play_result_feedback(result)
 	_status_from_result(result)
+	if String(game_state.get("end_condition", "")) != "":
+		_handle_round_end()
 
 
 func _status_from_result(result: Dictionary) -> void:
@@ -185,8 +211,10 @@ func _apply_tile_visual(tile_id: String) -> void:
 
 	var card_id := String(tile["card_id"])
 	var material_name := String(tile.get("material", "bone"))
+	var scale := _get_layout_scale()
 	tile_node.visible = true
 	tile_node.setup(tile_id, card_id, _get_icon(card_id), material_name)
+	tile_node.scale = Vector2(scale, scale)
 
 	var free := TileRules.is_free(tile_db, tile)
 	tile_node.set_clickable(free)
@@ -217,7 +245,8 @@ func _on_tile_node_tree_exited(tile_id: String, exited_node: Tile) -> void:
 func _to_screen_position(tile: Dictionary) -> Vector2:
 	var origin := _get_layout_origin()
 	var raw_position := _to_layout_space(tile)
-	return raw_position + origin
+	var scale := _get_layout_scale()
+	return raw_position * scale + origin
 
 
 func _to_layout_space(tile: Dictionary) -> Vector2:
@@ -234,9 +263,24 @@ func _get_layout_origin() -> Vector2:
 	var bounds := _get_layout_bounds()
 	var available_size := board_container.size - BOARD_PADDING * 2.0
 	if available_size.x <= 0.0 or available_size.y <= 0.0:
-		return -bounds.position
+		return -bounds.position * _get_layout_scale()
 
-	return BOARD_PADDING + (available_size - bounds.size) * 0.5 - bounds.position
+	var scale := _get_layout_scale()
+	return BOARD_PADDING + (available_size - bounds.size * scale) * 0.5 - bounds.position * scale
+
+
+func _get_layout_scale() -> float:
+	if tile_db.is_empty():
+		return 1.0
+	var bounds := _get_layout_bounds()
+	if bounds.size.x <= 0.0 or bounds.size.y <= 0.0:
+		return 1.0
+	var available_size := board_container.size - BOARD_PADDING * 2.0
+	if available_size.x <= 0.0 or available_size.y <= 0.0:
+		return 1.0
+	var scale_x := available_size.x / bounds.size.x
+	var scale_y := available_size.y / bounds.size.y
+	return min(1.0, min(scale_x, scale_y))
 
 
 func _get_layout_bounds() -> Rect2:
@@ -325,11 +369,42 @@ func _sorted_tiles(db: Dictionary) -> Array[Dictionary]:
 
 
 func _on_restart_button_pressed() -> void:
+	if RunManager.has_active_run() and String(game_state.get("end_condition", "")) != "":
+		var result := RunManager.last_round_result
+		if result.is_empty():
+			result = RunManager.evaluate_round(game_state)
+		if bool(result.get("win", false)):
+			RunManager.advance_after_win()
+			RunManager.enter_stage(String(RunManager.run.get("stage", RunManager.STAGE_SHOP)))
+			return
+		RunManager.retry_round()
 	_setup_new_round()
 
 
 func _on_back_button_pressed() -> void:
 	get_tree().change_scene_to_file("res://scene/gameStar.tscn")
+
+
+func _handle_round_end() -> void:
+	if not RunManager.has_active_run():
+		return
+	var result := RunManager.evaluate_round(game_state)
+	if bool(result.get("win", false)):
+		restart_button.text = "继续"
+		status_label.text = "通关成功，点击继续前往下一阶段。"
+	else:
+		restart_button.text = "重试"
+		status_label.text = "未达成目标，点击重试当前回合。"
+
+
+func _apply_round_header() -> void:
+	if not RunManager.has_active_run():
+		return
+	var round := RunManager.get_round()
+	var round_id := int(RunManager.run.get("round", 1))
+	var objective := int(round.get("pointObjective", 0))
+	title_label.text = "第 %d 回合" % round_id
+	status_label.text = "目标分数：%d" % objective
 
 
 func _get_icon(card_id: String) -> Texture2D:

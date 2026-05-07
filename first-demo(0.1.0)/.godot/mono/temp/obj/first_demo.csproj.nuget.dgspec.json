@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Programs\\myGame\\malegema_game\\first-demo\\first_demo.csproj": {}
+    "D:\\Programs\\myGame\\first-demo(0.1.0)\\first_demo.csproj": {}
   },
   "projects": {
-    "D:\\Programs\\myGame\\malegema_game\\first-demo\\first_demo.csproj": {
+    "D:\\Programs\\myGame\\first-demo(0.1.0)\\first_demo.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Programs\\myGame\\malegema_game\\first-demo\\first_demo.csproj",
+        "projectUniqueName": "D:\\Programs\\myGame\\first-demo(0.1.0)\\first_demo.csproj",
         "projectName": "first_demo",
-        "projectPath": "D:\\Programs\\myGame\\malegema_game\\first-demo\\first_demo.csproj",
+        "projectPath": "D:\\Programs\\myGame\\first-demo(0.1.0)\\first_demo.csproj",
         "packagesPath": "C:\\Users\\Tensors\\.nuget\\packages\\",
-        "outputPath": "D:\\Programs\\myGame\\malegema_game\\first-demo\\.godot\\mono\\temp\\obj\\",
+        "outputPath": "D:\\Programs\\myGame\\first-demo(0.1.0)\\.godot\\mono\\temp\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "D:\\Programs\\VisualStudio\\Shares\\NuGetPackages"

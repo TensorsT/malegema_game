@@ -76,6 +76,8 @@ static func select_tile(tile_db: Dictionary, game_state: Dictionary, tile_id: St
 		delete_tiles(tile_db, [String(first_tile["id"]), tile_id])
 		var points := get_points(first_tile, game_state) + get_points(tile, game_state)
 		game_state["points"] = int(game_state.get("points", 0)) + points
+		var coins := get_coins(first_tile, game_state) + get_coins(tile, game_state)
+		game_state["coins"] = int(game_state.get("coins", 0)) + coins
 		_apply_post_delete_modules(tile_db, game_state, tile)
 
 		var condition := game_over_condition(tile_db)
@@ -85,6 +87,7 @@ static func select_tile(tile_db: Dictionary, game_state: Dictionary, tile_id: St
 		return {
 			"kind": "matched",
 			"points": points,
+			"coins": coins,
 			"total_points": int(game_state["points"]),
 			"end_condition": String(game_state.get("end_condition", "")),
 		}
@@ -138,6 +141,15 @@ static func get_points(tile: Dictionary, game_state: Dictionary) -> int:
 	return base_points * multiplier
 
 
+static func get_coins(tile: Dictionary, game_state: Dictionary) -> int:
+	var material := _resolve_material(tile, game_state)
+	var material_coins := _get_material_coins(material)
+	var rabbit_bonus := 0
+	if _is_rabbit(String(tile.get("card_id", ""))):
+		rabbit_bonus = 1
+	return material_coins + rabbit_bonus
+
+
 static func _get_material_points(material: String) -> int:
 	match material:
 		"topaz", "quartz", "garnet":
@@ -148,6 +160,16 @@ static func _get_material_points(material: String) -> int:
 			return 24
 		"emerald":
 			return 48
+		_:
+			return 0
+
+
+static func _get_material_coins(material: String) -> int:
+	match material:
+		"garnet":
+			return 1
+		"ruby":
+			return 3
 		_:
 			return 0
 
@@ -176,6 +198,11 @@ static func _frog_matches_lotus(card_id1: String, card_id2: String) -> bool:
 static func _is_flower(card_id: String) -> bool:
 	var card := CardData.get_card_by_id(card_id)
 	return String(card.get("suit", "")) == "flower"
+
+
+static func _is_rabbit(card_id: String) -> bool:
+	var card := CardData.get_card_by_id(card_id)
+	return String(card.get("suit", "")) == "rabbit"
 
 
 static func _resolve_material(tile: Dictionary, game_state: Dictionary) -> String:

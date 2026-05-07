@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "goKS6k/LzVw=",
+  "dgSpecHash": "HrXVdkgR6hE=",
   "success": true,
-  "projectFilePath": "D:\\Programs\\myGame\\malegema_game\\first-demo\\first_demo.csproj",
+  "projectFilePath": "D:\\Programs\\myGame\\first-demo(0.1.0)\\first_demo.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Tensors\\.nuget\\packages\\godot.sourcegenerators\\4.6.1\\godot.sourcegenerators.4.6.1.nupkg.sha512",
     "C:\\Users\\Tensors\\.nuget\\packages\\godotsharp\\4.6.1\\godotsharp.4.6.1.nupkg.sha512",
