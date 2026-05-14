@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://bqyabfscwju47"
+path="res://.godot/imported/Speed of Light.mp3-7b154f578d7c849ae1c1ce366a9b64c1.mp3str"
+
+[deps]
+
+source_file="res://sounds/Speed of Light.mp3"
+dest_files=["res://.godot/imported/Speed of Light.mp3-7b154f578d7c849ae1c1ce366a9b64c1.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

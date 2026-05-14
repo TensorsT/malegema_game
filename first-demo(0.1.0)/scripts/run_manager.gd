@@ -177,4 +177,8 @@ func _next_round_stage() -> String:
 
 func _generate_run_id() -> String:
 	var letter := "E"
-	return "%s-%d" % [letter, int(Time.get_unix_time_from_system())]
+	var ms := int(Time.get_unix_time_from_system() * 1000.0)
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var salt := rng.randi_range(1000, 9999)
+	return "%s-%d-%d" % [letter, ms, salt]

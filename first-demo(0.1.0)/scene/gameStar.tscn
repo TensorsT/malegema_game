@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bmkp7t7jbxyeg"]
 
-[ext_resource type="Script" path="res://scripts/start_menu.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dvytaiq2kmp5w" path="res://scripts/start_menu.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scene/WhatajongBackdrop.tscn" id="2_backdrop"]
 
 [node name="StartMenu" type="Control" unique_id=1880328710]
@@ -13,6 +13,7 @@ grow_vertical = 2
 script = ExtResource("1_script")
 
 [node name="Background" parent="." unique_id=1571796568 instance=ExtResource("2_backdrop")]
+layout_mode = 1
 
 [node name="MainPanel" type="Panel" parent="." unique_id=1486015078]
 layout_mode = 1
@@ -24,7 +25,7 @@ anchor_bottom = 0.5
 offset_left = -220.0
 offset_top = -180.0
 offset_right = 220.0
-offset_bottom = 180.0
+offset_bottom = 336.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -39,7 +40,7 @@ theme_override_constants/separation = 14
 [node name="TitleLabel" type="Label" parent="MainPanel/VBoxContainer" unique_id=2045719206]
 layout_mode = 2
 theme_override_font_sizes/font_size = 42
-text = "FIRST DEMO"
+text = "Malegema"
 horizontal_alignment = 1
 
 [node name="SubtitleLabel" type="Label" parent="MainPanel/VBoxContainer" unique_id=1920182145]
@@ -52,12 +53,7 @@ custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "开始游戏"
 
-[node name="TutorialButton" type="Button" parent="MainPanel/VBoxContainer"]
-custom_minimum_size = Vector2(0, 46)
-layout_mode = 2
-text = "教程"
-
-[node name="ContinueButton" type="Button" parent="MainPanel/VBoxContainer"]
+[node name="ContinueButton" type="Button" parent="MainPanel/VBoxContainer" unique_id=1496029848]
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "继续游戏"
@@ -77,6 +73,69 @@ layout_mode = 2
 text = "点击“开始游戏”进入流程"
 horizontal_alignment = 1
 
+[node name="StartOptionsPopup" type="PopupPanel" parent="." unique_id=1612928011]
+initial_position = 1
+size = Vector2i(520, 360)
+
+[node name="MarginContainer" type="MarginContainer" parent="StartOptionsPopup" unique_id=1498817438]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 516.0
+offset_bottom = 356.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="StartOptionsPopup/MarginContainer" unique_id=1362084943]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StartOptionsTitle" type="Label" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1191686177]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "开始选项"
+horizontal_alignment = 1
+
+[node name="SeedRow" type="HBoxContainer" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1932149027]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SeedLabel" type="Label" parent="StartOptionsPopup/MarginContainer/VBoxContainer/SeedRow" unique_id=1010074183]
+layout_mode = 2
+text = "种子"
+
+[node name="SeedInput" type="LineEdit" parent="StartOptionsPopup/MarginContainer/VBoxContainer/SeedRow" unique_id=1518362238]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "输入种子（留空随机）"
+
+[node name="SeedStartButton" type="Button" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1406614963]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "用种子开始"
+
+[node name="NoSeedButton" type="Button" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1978156919]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "直接开始"
+
+[node name="TutorialButton" type="Button" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=497933386]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "进入教程"
+
+[node name="CloseStartOptionsButton" type="Button" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1833688743]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "返回"
+
 [node name="HelpPopup" type="PopupPanel" parent="." unique_id=1672275984]
 initial_position = 1
 size = Vector2i(460, 260)
@@ -88,7 +147,7 @@ anchor_bottom = 1.0
 offset_left = 4.0
 offset_top = 4.0
 offset_right = 456.0
-offset_bottom = 258.0
+offset_bottom = 256.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 16
@@ -163,20 +222,41 @@ layout_mode = 2
 size_flags_horizontal = 3
 value = 70.0
 
+[node name="MusicSelectRow" type="HBoxContainer" parent="SettingsPopup/MarginContainer/VBoxContainer" unique_id=2138715028]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MusicSelectLabel" type="Label" parent="SettingsPopup/MarginContainer/VBoxContainer/MusicSelectRow" unique_id=138074126]
+layout_mode = 2
+text = "背景音乐"
+
+[node name="MusicOption" type="OptionButton" parent="SettingsPopup/MarginContainer/VBoxContainer/MusicSelectRow" unique_id=1034258141]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="FullscreenCheck" type="CheckBox" parent="SettingsPopup/MarginContainer/VBoxContainer" unique_id=1023740394]
 layout_mode = 2
 text = "全屏模式"
+
+[node name="SaveStatusLabel" type="Label" parent="SettingsPopup/MarginContainer/VBoxContainer" unique_id=2081980043]
+layout_mode = 2
+text = "存档状态：无"
 
 [node name="CloseSettingsButton" type="Button" parent="SettingsPopup/MarginContainer/VBoxContainer" unique_id=2075331390]
 layout_mode = 2
 text = "保存并关闭"
 
 [connection signal="pressed" from="MainPanel/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
-[connection signal="pressed" from="MainPanel/VBoxContainer/TutorialButton" to="." method="_on_tutorial_button_pressed"]
 [connection signal="pressed" from="MainPanel/VBoxContainer/ContinueButton" to="." method="_on_continue_button_pressed"]
 [connection signal="pressed" from="MainPanel/VBoxContainer/HelpButton" to="." method="_on_help_button_pressed"]
 [connection signal="pressed" from="MainPanel/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
+[connection signal="pressed" from="StartOptionsPopup/MarginContainer/VBoxContainer/SeedStartButton" to="." method="_on_seed_start_button_pressed"]
+[connection signal="pressed" from="StartOptionsPopup/MarginContainer/VBoxContainer/NoSeedButton" to="." method="_on_no_seed_button_pressed"]
+[connection signal="pressed" from="StartOptionsPopup/MarginContainer/VBoxContainer/TutorialButton" to="." method="_on_tutorial_button_pressed"]
+[connection signal="pressed" from="StartOptionsPopup/MarginContainer/VBoxContainer/CloseStartOptionsButton" to="." method="_on_close_start_options_pressed"]
 [connection signal="pressed" from="HelpPopup/MarginContainer/VBoxContainer/CloseHelpButton" to="." method="_on_close_help_pressed"]
 [connection signal="value_changed" from="SettingsPopup/MarginContainer/VBoxContainer/MusicRow/MusicSlider" to="." method="_on_music_slider_value_changed"]
+[connection signal="item_selected" from="SettingsPopup/MarginContainer/VBoxContainer/MusicSelectRow/MusicOption" to="." method="_on_music_option_item_selected"]
 [connection signal="toggled" from="SettingsPopup/MarginContainer/VBoxContainer/FullscreenCheck" to="." method="_on_fullscreen_check_toggled"]
 [connection signal="pressed" from="SettingsPopup/MarginContainer/VBoxContainer/CloseSettingsButton" to="." method="_on_close_settings_pressed"]

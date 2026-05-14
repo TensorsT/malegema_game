@@ -1,7 +1,26 @@
-# CHANGELOG![1778742880251](image/CHANGELOG/1778742880251.png)![1778742882852](image/CHANGELOG/1778742882852.png)![1778742899272](image/CHANGELOG/1778742899272.png)
+# CHANGELOG
 
 项目后续统一按纯 Godot 主线记录。当前主工程保持目录名 `first-demo(0.1.0)/` 不变；`first-demo/` 只作为早期基础 demo 参考；`malegema/` 为历史 Python 实验实现，不再作为主要推进线。
 
+
+## [0.1.7] 2026-05-14
+
+### 新增
+
+- 开始选项弹窗：点击开始后可选择“直接开始 / 用种子开始 / 进入教程”。
+- 种子显示：对局内分数条新增当前种子展示。
+- 存档机制：新增 `run_save.json` 保存/读取与继续游戏入口。
+- 背景音乐设置：新增全局 `MusicManager`，默认 `Speed of Light.mp3`，设置页支持切换曲目与音量保存。
+
+### 调整
+
+- 种子开局入口改为弹窗内操作，主界面保持简洁。
+- runId 生成改为“毫秒时间戳 + 随机盐”，避免快速重开重复种子。
+
+### 修复
+
+- 修复加载存档时 `Array` 到 `Array[Dictionary]` 的类型赋值报错。
+- 降低风痕覆盖层 `z_index`，避免超出 Canvas 最大层级警告。
 
 ## [0.1.6] 2026-05-14
 
@@ -34,7 +53,6 @@
 ### 验证
 
 - 已通过 Godot 4.6.1 无头加载验证：项目加载、`board.tscn`、`run_end.tscn`、`run_shop.tscn` 加载和 `module_regression_runner.gd` 均正常退出。
-
 
 ## [0.1.4] 2026-05-14
 

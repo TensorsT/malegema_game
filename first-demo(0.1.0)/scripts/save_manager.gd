@@ -70,6 +70,29 @@ static func clear_save() -> void:
 		DirAccess.remove_absolute(SAVE_PATH)
 
 
+static func get_save_status_text() -> String:
+	if not has_save():
+		return "存档状态：无"
+	var data := load_game()
+	if data.is_empty():
+		return "存档状态：读取失败"
+	var timestamp := int(data.get("timestamp", 0))
+	if timestamp <= 0:
+		return "存档状态：有（时间未知）"
+	var dt := Time.get_datetime_dict_from_unix_time(timestamp)
+	if dt.is_empty():
+		return "存档状态：有（时间未知）"
+	var date_text := "%04d-%02d-%02d %02d:%02d:%02d" % [
+		int(dt.get("year", 0)),
+		int(dt.get("month", 0)),
+		int(dt.get("day", 0)),
+		int(dt.get("hour", 0)),
+		int(dt.get("minute", 0)),
+		int(dt.get("second", 0)),
+	]
+	return "存档状态：有 · 最近保存：%s" % date_text
+
+
 static func _ensure_dict(value) -> Dictionary:
 	if value is Dictionary:
 		return value as Dictionary

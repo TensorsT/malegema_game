@@ -12,12 +12,13 @@ config_version=5
 
 config/name="first_demo"
 run/main_scene="uid://bmkp7t7jbxyeg"
-config/features=PackedStringArray("4.6", "GL Compatibility")
+config/features=PackedStringArray("4.6", "C#", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
 RunManager="*res://scripts/run_manager.gd"
+MusicManager="*res://scripts/music_manager.gd"
 
 [display]
 

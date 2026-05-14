@@ -601,11 +601,22 @@ func _update_score_label() -> void:
 	var timer_points := float(round.get("timerPoints", 0.0))
 	var penalty := float(game_state.get("time", 0.0)) * timer_points
 	var estimated_total := int(round(points - penalty))
-	score_label.text = "已有分数：%d / 过关分数：%d / 预计结算：%d" % [
+	var seed_text := _get_run_seed_text()
+	var base_text := "已有分数：%d / 过关分数：%d / 预计结算：%d" % [
 		points,
 		objective,
 		estimated_total,
 	]
+	if seed_text == "":
+		score_label.text = base_text
+		return
+	score_label.text = "%s\n种子：%s" % [base_text, seed_text]
+
+
+func _get_run_seed_text() -> String:
+	if not RunManager.has_active_run():
+		return ""
+	return String(RunManager.run.get("runId", ""))
 
 
 func _get_icon(card_id: String) -> Texture2D:
@@ -637,7 +648,7 @@ func _setup_wind_gust_overlay() -> void:
 	wind_gust_overlay = WIND_GUST_OVERLAY_SCRIPT.new() as Control
 	wind_gust_overlay.name = "WindGustOverlay"
 	wind_gust_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wind_gust_overlay.z_index = 5000
+	wind_gust_overlay.z_index = 500
 	board_container.add_child(wind_gust_overlay)
 	_fit_control_to_parent(wind_gust_overlay)
 
