@@ -90,6 +90,26 @@ theme_override_constants/margin_bottom = 18
 layout_mode = 2
 theme_override_constants/separation = 12
 
+[node name="TabRow" type="HBoxContainer" parent="ShopPanel/VBoxContainer/ContentRow/DetailPanel/DetailMargin/DetailVBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="DetailTabButton" type="Button" parent="ShopPanel/VBoxContainer/ContentRow/DetailPanel/DetailMargin/DetailVBox/TabRow"]
+custom_minimum_size = Vector2(190, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+toggle_mode = true
+button_pressed = true
+text = "商品详情"
+
+[node name="DeckTabButton" type="Button" parent="ShopPanel/VBoxContainer/ContentRow/DetailPanel/DetailMargin/DetailVBox/TabRow"]
+custom_minimum_size = Vector2(190, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+toggle_mode = true
+text = "当前牌组"
+
 [node name="DetailTitleLabel" type="Label" parent="ShopPanel/VBoxContainer/ContentRow/DetailPanel/DetailMargin/DetailVBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
@@ -132,6 +152,24 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "点击左侧商品查看详情。"
 autowrap_mode = 3
+
+[node name="DeckSummaryLabel" type="Label" parent="ShopPanel/VBoxContainer/ContentRow/DetailPanel/DetailMargin/DetailVBox"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="DeckScroll" type="ScrollContainer" parent="ShopPanel/VBoxContainer/ContentRow/DetailPanel/DetailMargin/DetailVBox"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DeckListContainer" type="VBoxContainer" parent="ShopPanel/VBoxContainer/ContentRow/DetailPanel/DetailMargin/DetailVBox/DeckScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
 [node name="StatusLabel" type="Label" parent="ShopPanel/VBoxContainer"]
 layout_mode = 2

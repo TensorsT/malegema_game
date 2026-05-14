@@ -172,8 +172,10 @@ static func get_levels(run_id: String) -> Array:
 static func generate_items(run: Dictionary, levels: Array) -> Array:
 	var run_id := String(run.get("runId", ""))
 	var round := int(run.get("round", 1))
-	if run.has("freeze") and run["freeze"] != null:
-		round = int(run["freeze"].get("round", round))
+	var freeze: Dictionary = run.get("freeze", {})
+	var freeze_active := not freeze.is_empty() and bool(freeze.get("active", false))
+	if freeze_active:
+		round = int(freeze.get("round", round))
 
 	var rng := create_rng("items-%s-%d" % [run_id, round])
 	var item_ids := {}
@@ -190,8 +192,8 @@ static func generate_items(run: Dictionary, levels: Array) -> Array:
 
 	var pool_size := initial_pool.size()
 	var reroll := int(run.get("reroll", 0))
-	if run.has("freeze") and run["freeze"] != null:
-		reroll = int(run["freeze"].get("reroll", reroll))
+	if freeze_active:
+		reroll = int(freeze.get("reroll", reroll))
 
 	var start := (ITEM_COUNT * reroll) % pool_size
 	var shuffled := _shuffle_array(initial_pool, rng)

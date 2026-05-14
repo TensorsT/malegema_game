@@ -2,6 +2,7 @@ extends Node
 
 const STAGE_INTRO := "intro"
 const STAGE_GAME := "game"
+const STAGE_SETTLEMENT := "settlement"
 const STAGE_REWARD := "reward"
 const STAGE_SHOP := "shop"
 const STAGE_END := "end"
@@ -9,6 +10,7 @@ const STAGE_END := "end"
 const STAGE_SCENES := {
 	STAGE_INTRO: "res://scene/gameStar.tscn",
 	STAGE_GAME: "res://scene/board.tscn",
+	STAGE_SETTLEMENT: "res://scene/run_end.tscn",
 	STAGE_REWARD: "res://scene/run_reward.tscn",
 	STAGE_SHOP: "res://scene/run_shop.tscn",
 	STAGE_END: "res://scene/run_end.tscn",
@@ -102,6 +104,8 @@ func evaluate_round(game_state: Dictionary) -> Dictionary:
 		"income": income,
 		"overAchievementCoins": over_achievement_coins,
 		"win": win,
+		"round": int(run.get("round", 1)),
+		"endCondition": end_condition,
 		"nextStage": next_stage,
 	}
 

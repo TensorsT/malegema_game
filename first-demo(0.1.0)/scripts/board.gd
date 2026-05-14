@@ -10,6 +10,7 @@ const SPECIAL_CARDS := [
 ]
 const MAX_TILES := 12
 const TILE_SCENE := preload("res://scene/Tile.tscn")
+const WIND_GUST_OVERLAY_SCRIPT := preload("res://scripts/wind_gust_overlay.gd")
 const CLICK_STREAM := preload("res://sounds/click.mp3")
 const MATCH_STREAM := preload("res://sounds/gemstone.mp3")
 
@@ -20,11 +21,15 @@ const Z_OFFSET_Y := 12
 const TILE_DRAW_SIZE := Vector2(82, 120)
 const BOARD_PADDING := Vector2(54, 42)
 const MAX_LAYOUT_SCALE := 1.45
+const WIND_PUSH_DURATION := 0.24
+const WIND_SETTLE_DURATION := 0.12
+const WIND_OVERSHOOT_PX := 18.0
 
 @onready var board_container: Control = $GamePanel/VBoxContainer/BoardContainer
 @onready var tile_layer: Control = $GamePanel/VBoxContainer/BoardContainer/TileLayer
 @onready var game_panel: Panel = $GamePanel
 @onready var title_label: Label = $GamePanel/VBoxContainer/TitleLabel
+@onready var score_label: Label = $GamePanel/VBoxContainer/ScoreLabel
 @onready var status_label: Label = $GamePanel/VBoxContainer/StatusLabel
 @onready var board_shadow: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardShadow
 @onready var board_surface: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardSurface
@@ -35,12 +40,15 @@ const MAX_LAYOUT_SCALE := 1.45
 
 var tile_db: Dictionary = {}
 var tile_nodes: Dictionary = {}
+var tile_motion_tweens: Dictionary = {}
 var icon_cache: Dictionary = {}
 
 var click_player: AudioStreamPlayer
 var match_player: AudioStreamPlayer
+var wind_gust_overlay: Control
 var board_tween: Tween
 var _layout_scale: float = 1.0
+var _round_end_pending := false
 
 var game_state := {
 	"points": 0,
@@ -57,6 +65,7 @@ var game_state := {
 func _ready() -> void:
 	_apply_whatajong_ui()
 	_setup_audio()
+	_setup_wind_gust_overlay()
 	board_container.resized.connect(_on_board_container_resized)
 	_on_board_container_resized()
 	_setup_new_round()
@@ -67,11 +76,14 @@ func _process(delta: float) -> void:
 	if String(game_state.get("end_condition", "")) != "":
 		return
 	game_state["time"] = float(game_state.get("time", 0.0)) + delta
+	_update_score_label()
 
 
 func _setup_new_round() -> void:
+	_kill_tile_motion_tweens()
 	tile_db.clear()
 	tile_nodes.clear()
+	_round_end_pending = false
 	game_state = {
 		"points": 0,
 		"coins": 0,
@@ -119,11 +131,8 @@ func _setup_new_round() -> void:
 		tile_nodes[tile_id] = tile_node
 
 	_refresh_tiles_state()
-	if RunManager.has_active_run():
-		var round := RunManager.get_round()
-		status_label.text = "目标分数：%d，当前分数：0" % int(round.get("pointObjective", 0))
-	else:
-		status_label.text = "找到可解牌局，当前分数：0"
+	_update_score_label()
+	status_label.text = "请选择两张可点击的相同牌。"
 
 
 func _apply_whatajong_ui() -> void:
@@ -134,7 +143,8 @@ func _apply_whatajong_ui() -> void:
 	WhatajongUI.apply_button(restart_button, WhatajongUI.COLOR_CRACK, 0.90)
 	WhatajongUI.apply_button(back_button, WhatajongUI.COLOR_DOT, 0.90)
 	WhatajongUI.tint_label(title_label, WhatajongUI.COLOR_DOT.darkened(0.38))
-	WhatajongUI.tint_body_text(status_label, WhatajongUI.COLOR_TEXT_SOFT, WhatajongUI.FONT_SIZE_BODY)
+	WhatajongUI.tint_body_text(score_label, WhatajongUI.COLOR_TEXT, WhatajongUI.FONT_SIZE_BODY)
+	WhatajongUI.tint_body_text(status_label, WhatajongUI.COLOR_TEXT_SOFT, WhatajongUI.FONT_SIZE_SMALL)
 
 	board_shadow.color = Color(0.03, 0.04, 0.05, 0.24)
 	board_surface.color = Color(0.20, 0.40, 0.34, 0.94)
@@ -161,10 +171,16 @@ func _on_tile_pressed(tile_id: String) -> void:
 		return
 
 	_play_click_sound(1.02, -8.0)
+	var wind_direction := _get_wind_direction_for_tile(tile)
+	var motion_snapshot := _snapshot_live_tile_views()
 	var result := GameLoop.select_tile(tile_db, game_state, tile_id)
-	_refresh_tiles_state()
+	var motion_map := _build_tile_motion_map(motion_snapshot)
+	_refresh_tiles_state(motion_map)
+	if String(result.get("kind", "")) == "matched" and wind_direction != Vector2.ZERO:
+		_play_wind_gust(wind_direction)
 	_play_result_feedback(result)
 	_status_from_result(result)
+	_update_score_label()
 	if String(game_state.get("end_condition", "")) != "":
 		_handle_round_end()
 
@@ -173,10 +189,10 @@ func _status_from_result(result: Dictionary) -> void:
 	var kind := String(result.get("kind", ""))
 	var end_condition := String(game_state.get("end_condition", ""))
 	if end_condition == "empty-board":
-		status_label.text = "全部清空，过关。总分：%d" % int(game_state["points"])
+		status_label.text = "牌局已清空，正在进入结算..."
 		return
 	if end_condition == "no-pairs":
-		status_label.text = "没有可消对，游戏结束。总分：%d" % int(game_state["points"])
+		status_label.text = "没有可消对，正在进入结算..."
 		return
 
 	match kind:
@@ -195,7 +211,7 @@ func _status_from_result(result: Dictionary) -> void:
 			status_label.text = "当前分数：%d" % int(game_state["points"])
 
 
-func _apply_tile_visual(tile_id: String) -> void:
+func _apply_tile_visual(tile_id: String, motion_map: Dictionary = {}) -> void:
 	if not tile_nodes.has(tile_id) or not tile_db.has(tile_id):
 		return
 
@@ -205,6 +221,7 @@ func _apply_tile_visual(tile_id: String) -> void:
 
 	var tile: Dictionary = tile_db[tile_id]
 	if bool(tile["deleted"]):
+		_cancel_tile_motion(tile_id)
 		if tile_node.visible:
 			tile_node.play_remove()
 		return
@@ -219,13 +236,20 @@ func _apply_tile_visual(tile_id: String) -> void:
 	var free := TileRules.is_free(tile_db, tile)
 	tile_node.set_clickable(free)
 	tile_node.set_selected(bool(tile["selected"]))
-	tile_node.position = _to_screen_position(tile)
+	var target_position := _to_screen_position(tile)
+	if motion_map.has(tile_id):
+		var motion: Dictionary = motion_map[tile_id]
+		var source_position: Vector2 = motion["from"]
+		_play_tile_motion(tile_id, tile_node, source_position, target_position)
+	else:
+		_cancel_tile_motion(tile_id)
+		tile_node.position = target_position
 	tile_node.z_index = int(tile["z"]) * 100 + int(tile["x"]) + int(tile["y"]) * 2
 
 
-func _refresh_tiles_state() -> void:
+func _refresh_tiles_state(motion_map: Dictionary = {}) -> void:
 	for tile_id in tile_nodes.keys():
-		_apply_tile_visual(String(tile_id))
+		_apply_tile_visual(String(tile_id), motion_map)
 
 
 func _get_live_tile_node(tile_id: String) -> Tile:
@@ -240,6 +264,125 @@ func _on_tile_node_tree_exited(tile_id: String, exited_node: Tile) -> void:
 	var current_node = tile_nodes.get(tile_id, null)
 	if current_node == exited_node:
 		tile_nodes.erase(tile_id)
+	_cancel_tile_motion(tile_id)
+
+
+func _snapshot_live_tile_views() -> Dictionary:
+	var snapshot: Dictionary = {}
+	for tile_id_value in tile_db.keys():
+		var tile_id := String(tile_id_value)
+		var tile: Dictionary = tile_db[tile_id]
+		if bool(tile.get("deleted", false)):
+			continue
+		var tile_node := _get_live_tile_node(tile_id)
+		if tile_node == null:
+			continue
+		snapshot[tile_id] = {
+			"position": tile_node.position,
+			"x": int(tile["x"]),
+			"y": int(tile["y"]),
+			"z": int(tile["z"]),
+		}
+	return snapshot
+
+
+func _build_tile_motion_map(snapshot: Dictionary) -> Dictionary:
+	var motion_map: Dictionary = {}
+	var has_grid_motion := false
+	for tile_id in snapshot.keys():
+		if not tile_db.has(tile_id):
+			continue
+		var tile: Dictionary = tile_db[tile_id]
+		if bool(tile.get("deleted", false)):
+			continue
+		var before: Dictionary = snapshot[tile_id]
+		if int(before["x"]) != int(tile["x"]) or int(before["y"]) != int(tile["y"]) or int(before["z"]) != int(tile["z"]):
+			has_grid_motion = true
+			break
+
+	if not has_grid_motion:
+		return motion_map
+
+	for tile_id in snapshot.keys():
+		if not tile_db.has(tile_id):
+			continue
+		var tile: Dictionary = tile_db[tile_id]
+		if bool(tile.get("deleted", false)):
+			continue
+		var before_entry: Dictionary = snapshot[tile_id]
+		var source: Vector2 = before_entry["position"]
+		var target := _to_screen_position(tile)
+		if source.distance_squared_to(target) > 1.0:
+			motion_map[tile_id] = {"from": source}
+	return motion_map
+
+
+func _play_tile_motion(tile_id: String, tile_node: Tile, source: Vector2, target: Vector2) -> void:
+	_cancel_tile_motion(tile_id)
+	tile_node.position = source
+
+	var offset := target - source
+	if offset.length_squared() <= 1.0:
+		tile_node.position = target
+		return
+
+	var overshoot := offset.normalized() * minf(WIND_OVERSHOOT_PX, offset.length() * 0.32)
+	var previous_modulate := tile_node.modulate
+	tile_node.modulate = previous_modulate.lerp(Color(1.0, 0.96, 0.78, previous_modulate.a), 0.45)
+
+	var motion_tween := create_tween()
+	tile_motion_tweens[tile_id] = motion_tween
+	motion_tween.tween_property(tile_node, "position", target + overshoot, WIND_PUSH_DURATION).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	motion_tween.parallel().tween_property(tile_node, "modulate", previous_modulate, WIND_PUSH_DURATION + WIND_SETTLE_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	motion_tween.tween_property(tile_node, "position", target, WIND_SETTLE_DURATION).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	motion_tween.finished.connect(_on_tile_motion_finished.bind(tile_id, tile_node, target, previous_modulate))
+
+
+func _on_tile_motion_finished(tile_id: String, tile_node: Tile, target: Vector2, target_modulate: Color) -> void:
+	if tile_motion_tweens.has(tile_id):
+		tile_motion_tweens.erase(tile_id)
+	if is_instance_valid(tile_node):
+		tile_node.position = target
+		tile_node.modulate = target_modulate
+
+
+func _cancel_tile_motion(tile_id: String) -> void:
+	var tween = tile_motion_tweens.get(tile_id, null)
+	if tween != null and (tween as Tween).is_valid():
+		(tween as Tween).kill()
+	tile_motion_tweens.erase(tile_id)
+
+
+func _kill_tile_motion_tweens() -> void:
+	for tween_value in tile_motion_tweens.values():
+		var tween := tween_value as Tween
+		if tween != null and tween.is_valid():
+			tween.kill()
+	tile_motion_tweens.clear()
+
+
+func _get_wind_direction_for_tile(tile: Dictionary) -> Vector2:
+	var card := CardData.get_card_by_id(String(tile.get("card_id", "")))
+	if String(card.get("suit", "")) != "wind":
+		return Vector2.ZERO
+
+	match String(card.get("rank", "")):
+		"n":
+			return Vector2.UP
+		"s":
+			return Vector2.DOWN
+		"e":
+			return Vector2.RIGHT
+		"w":
+			return Vector2.LEFT
+		_:
+			return Vector2.ZERO
+
+
+func _play_wind_gust(direction: Vector2) -> void:
+	if wind_gust_overlay == null or not is_instance_valid(wind_gust_overlay):
+		return
+	wind_gust_overlay.call("play", direction)
 
 
 func _to_screen_position(tile: Dictionary) -> Vector2:
@@ -386,15 +529,22 @@ func _on_back_button_pressed() -> void:
 
 
 func _handle_round_end() -> void:
+	if _round_end_pending:
+		return
+	_round_end_pending = true
 	if not RunManager.has_active_run():
 		return
 	var result := RunManager.evaluate_round(game_state)
 	if bool(result.get("win", false)):
-		restart_button.text = "继续"
-		status_label.text = "通关成功，点击继续前往下一阶段。"
+		status_label.text = "通关成功，正在进入结算..."
 	else:
-		restart_button.text = "重试"
-		status_label.text = "未达成目标，点击重试当前回合。"
+		status_label.text = "未达成目标，正在进入结算..."
+	_update_score_label()
+
+	await get_tree().create_timer(0.55).timeout
+	if not is_inside_tree() or not RunManager.has_active_run():
+		return
+	RunManager.enter_stage(RunManager.STAGE_SETTLEMENT)
 
 
 func _apply_round_header() -> void:
@@ -402,9 +552,26 @@ func _apply_round_header() -> void:
 		return
 	var round := RunManager.get_round()
 	var round_id := int(RunManager.run.get("round", 1))
-	var objective := int(round.get("pointObjective", 0))
 	title_label.text = "第 %d 回合" % round_id
-	status_label.text = "目标分数：%d" % objective
+	_update_score_label()
+
+
+func _update_score_label() -> void:
+	var points := int(game_state.get("points", 0))
+	if not RunManager.has_active_run():
+		score_label.text = "已有分数：%d" % points
+		return
+
+	var round := RunManager.get_round()
+	var objective := int(round.get("pointObjective", 0))
+	var timer_points := float(round.get("timerPoints", 0.0))
+	var penalty := float(game_state.get("time", 0.0)) * timer_points
+	var estimated_total := int(round(points - penalty))
+	score_label.text = "已有分数：%d / 过关分数：%d / 预计结算：%d" % [
+		points,
+		objective,
+		estimated_total,
+	]
 
 
 func _get_icon(card_id: String) -> Texture2D:
@@ -430,6 +597,26 @@ func _setup_audio() -> void:
 	match_player.stream = MATCH_STREAM
 	match_player.volume_db = -4.0
 	add_child(match_player)
+
+
+func _setup_wind_gust_overlay() -> void:
+	wind_gust_overlay = WIND_GUST_OVERLAY_SCRIPT.new() as Control
+	wind_gust_overlay.name = "WindGustOverlay"
+	wind_gust_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wind_gust_overlay.z_index = 5000
+	board_container.add_child(wind_gust_overlay)
+	_fit_control_to_parent(wind_gust_overlay)
+
+
+func _fit_control_to_parent(control: Control) -> void:
+	control.anchor_left = 0.0
+	control.anchor_top = 0.0
+	control.anchor_right = 1.0
+	control.anchor_bottom = 1.0
+	control.offset_left = 0.0
+	control.offset_top = 0.0
+	control.offset_right = 0.0
+	control.offset_bottom = 0.0
 
 
 func _play_click_sound(pitch: float, volume_db: float) -> void:
@@ -504,5 +691,7 @@ func _update_board_pivot() -> void:
 
 func _on_board_container_resized() -> void:
 	_update_board_pivot()
+	if wind_gust_overlay != null and is_instance_valid(wind_gust_overlay):
+		_fit_control_to_parent(wind_gust_overlay)
 	if not tile_db.is_empty():
 		_refresh_tiles_state()
