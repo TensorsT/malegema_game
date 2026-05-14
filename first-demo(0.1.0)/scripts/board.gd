@@ -18,7 +18,8 @@ const STEP_Y := 54
 const Z_OFFSET_X := 6
 const Z_OFFSET_Y := 12
 const TILE_DRAW_SIZE := Vector2(82, 120)
-const BOARD_PADDING := Vector2(54, 34)
+const BOARD_PADDING := Vector2(54, 42)
+const MAX_LAYOUT_SCALE := 1.45
 
 @onready var board_container: Control = $GamePanel/VBoxContainer/BoardContainer
 @onready var tile_layer: Control = $GamePanel/VBoxContainer/BoardContainer/TileLayer
@@ -126,19 +127,19 @@ func _setup_new_round() -> void:
 
 
 func _apply_whatajong_ui() -> void:
-	WhatajongUI.apply_panel(game_panel, WhatajongUI.COLOR_DOT, Color(0.95, 0.92, 0.84, 0.78), 30, 28)
-	WhatajongUI.apply_display_font(title_label)
-	WhatajongUI.apply_display_font(restart_button)
-	WhatajongUI.apply_display_font(back_button)
+	WhatajongUI.apply_panel(game_panel, WhatajongUI.COLOR_DOT, Color(0.97, 0.94, 0.86, 0.86), 30, 22)
+	WhatajongUI.apply_display_font(title_label, WhatajongUI.FONT_SIZE_TITLE)
+	WhatajongUI.apply_display_font(restart_button, WhatajongUI.FONT_SIZE_BUTTON)
+	WhatajongUI.apply_display_font(back_button, WhatajongUI.FONT_SIZE_BUTTON)
 	WhatajongUI.apply_button(restart_button, WhatajongUI.COLOR_CRACK, 0.90)
 	WhatajongUI.apply_button(back_button, WhatajongUI.COLOR_DOT, 0.90)
 	WhatajongUI.tint_label(title_label, WhatajongUI.COLOR_DOT.darkened(0.38))
-	WhatajongUI.tint_body_text(status_label)
+	WhatajongUI.tint_body_text(status_label, WhatajongUI.COLOR_TEXT_SOFT, WhatajongUI.FONT_SIZE_BODY)
 
-	board_shadow.color = Color(0.03, 0.04, 0.05, 0.34)
-	board_surface.color = Color(0.13, 0.22, 0.20, 0.92)
-	board_inset.color = Color(0.17, 0.30, 0.27, 0.64)
-	board_glow.color = Color(0.82, 0.91, 0.86, 0.10)
+	board_shadow.color = Color(0.03, 0.04, 0.05, 0.24)
+	board_surface.color = Color(0.20, 0.40, 0.34, 0.94)
+	board_inset.color = Color(0.28, 0.50, 0.42, 0.50)
+	board_glow.color = Color(0.84, 0.96, 0.86, 0.14)
 
 
 func _on_tile_pressed(tile_id: String) -> void:
@@ -157,7 +158,6 @@ func _on_tile_pressed(tile_id: String) -> void:
 		var blocked_tile_node := _get_live_tile_node(tile_id)
 		if blocked_tile_node != null:
 			blocked_tile_node.play_invalid_feedback()
-		_play_board_bump(false)
 		return
 
 	_play_click_sound(1.02, -8.0)
@@ -280,7 +280,7 @@ func _get_layout_scale() -> float:
 		return 1.0
 	var scale_x := available_size.x / bounds.size.x
 	var scale_y := available_size.y / bounds.size.y
-	return min(1.0, min(scale_x, scale_y))
+	return min(MAX_LAYOUT_SCALE, min(scale_x, scale_y))
 
 
 func _get_layout_bounds() -> Rect2:
@@ -455,23 +455,23 @@ func _play_result_feedback(result: Dictionary) -> void:
 		"mismatch":
 			_play_board_bump(false)
 		"selected-first":
-			_play_board_focus()
+			_play_board_tap()
 		_:
 			pass
 
 
-func _play_board_focus() -> void:
+func _play_board_tap() -> void:
 	_update_board_pivot()
 	if board_tween != null and board_tween.is_valid():
 		board_tween.kill()
 
 	board_tween = create_tween()
 	board_tween.set_parallel(true)
-	board_tween.tween_property(board_container, "scale", Vector2(1.01, 1.01), 0.07).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	board_tween.tween_property(board_container, "rotation_degrees", -0.18, 0.07).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	board_tween.tween_property(board_container, "scale", Vector2(1.002, 1.002), 0.045).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	board_tween.tween_property(board_container, "rotation_degrees", -0.035, 0.045).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	board_tween.chain().set_parallel(true)
-	board_tween.tween_property(board_container, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	board_tween.tween_property(board_container, "rotation_degrees", 0.0, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	board_tween.tween_property(board_container, "scale", Vector2.ONE, 0.09).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	board_tween.tween_property(board_container, "rotation_degrees", 0.0, 0.09).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
 func _play_board_bump(strong: bool) -> void:
@@ -479,15 +479,15 @@ func _play_board_bump(strong: bool) -> void:
 	if board_tween != null and board_tween.is_valid():
 		board_tween.kill()
 
-	var target_scale := Vector2(0.996, 1.008)
-	var target_rotation := 0.35
-	var attack := 0.05
-	var release := 0.13
+	var target_scale := Vector2(0.998, 1.003)
+	var target_rotation := 0.08
+	var attack := 0.04
+	var release := 0.09
 	if strong:
-		target_scale = Vector2(0.986, 1.018)
-		target_rotation = -0.7
-		attack = 0.08
-		release = 0.20
+		target_scale = Vector2(0.976, 1.028)
+		target_rotation = -0.85
+		attack = 0.085
+		release = 0.24
 
 	board_tween = create_tween()
 	board_tween.set_parallel(true)

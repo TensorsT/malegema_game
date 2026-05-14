@@ -11,15 +11,22 @@ const COLOR_TEXT := Color(0.17, 0.12, 0.08, 1.0)
 const COLOR_TEXT_SOFT := Color(0.26, 0.20, 0.14, 0.92)
 const COLOR_LIGHT_TEXT := Color(0.97, 0.95, 0.90, 1.0)
 const COLOR_SHADOW := Color(0.03, 0.03, 0.03, 0.22)
+const FONT_SIZE_TITLE := 44
+const FONT_SIZE_SUBTITLE := 30
+const FONT_SIZE_BODY := 24
+const FONT_SIZE_SMALL := 20
+const FONT_SIZE_BUTTON := 24
 
 
 static func apply_panel(panel, accent: Color = COLOR_DOT, fill: Color = COLOR_BONE, radius: int = 26, shadow_size: int = 24) -> void:
 	panel.add_theme_stylebox_override("panel", _make_panel_style(fill, accent, radius, shadow_size))
 
 
-static func apply_button(button: BaseButton, accent: Color, fill_alpha: float = 0.92) -> void:
+static func apply_button(button: BaseButton, accent: Color, fill_alpha: float = 0.92, font_size: int = FONT_SIZE_BUTTON) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_font_override("font", PRIMARY_FONT)
+	if font_size > 0:
+		button.add_theme_font_size_override("font_size", font_size)
 	button.add_theme_color_override("font_color", COLOR_LIGHT_TEXT)
 	button.add_theme_color_override("font_hover_color", COLOR_LIGHT_TEXT)
 	button.add_theme_color_override("font_hover_pressed_color", COLOR_LIGHT_TEXT)
@@ -33,16 +40,20 @@ static func apply_button(button: BaseButton, accent: Color, fill_alpha: float = 
 	button.add_theme_stylebox_override("disabled", _make_button_style(Color(0.32, 0.34, 0.36, 0.72), Color(0.17, 0.18, 0.20, 0.82), 0.72))
 
 
-static func apply_display_font(control: Control) -> void:
+static func apply_display_font(control: Control, font_size: int = 0) -> void:
 	control.add_theme_font_override("font", PRIMARY_FONT)
+	if font_size > 0:
+		control.add_theme_font_size_override("font_size", font_size)
 
 
 static func tint_label(label: Label, color: Color = COLOR_TEXT) -> void:
 	label.add_theme_color_override("font_color", color)
 
 
-static func tint_body_text(label: Label, color: Color = COLOR_TEXT_SOFT) -> void:
+static func tint_body_text(label: Label, color: Color = COLOR_TEXT_SOFT, font_size: int = 0) -> void:
 	label.add_theme_color_override("font_color", color)
+	if font_size > 0:
+		label.add_theme_font_size_override("font_size", font_size)
 
 
 static func tint_rich_text(label: RichTextLabel, color: Color = COLOR_TEXT_SOFT) -> void:
