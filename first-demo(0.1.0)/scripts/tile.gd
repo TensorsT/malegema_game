@@ -22,6 +22,9 @@ var is_clickable: bool = true
 var is_removed: bool = false
 var hover_active: bool = false
 var is_pressing: bool = false
+var is_highlighted: bool = false
+var show_shadow: bool = true
+var base_scale: Vector2 = Vector2.ONE
 
 var accent_color := Color(0.22, 0.65, 0.40)
 var face_color := Color(0.97, 0.95, 0.90)
@@ -93,13 +96,36 @@ func setup(id: String, type: String, icon_texture: Texture2D = null, material_na
 
 
 func set_selected(value: bool) -> void:
+	if is_selected == value:
+		return
 	is_selected = value
 	_update_visual_state()
 
 
 func set_clickable(value: bool) -> void:
+	if is_clickable == value:
+		return
 	is_clickable = value
 	mouse_default_cursor_shape = CURSOR_POINTING_HAND if value else CURSOR_ARROW
+	_update_visual_state()
+
+
+func set_highlighted(value: bool) -> void:
+	if is_highlighted == value:
+		return
+	is_highlighted = value
+	_update_visual_state()
+
+
+func set_shadow_enabled(value: bool) -> void:
+	show_shadow = value
+	queue_redraw()
+
+
+func set_base_scale(value: Vector2) -> void:
+	if base_scale.is_equal_approx(value):
+		return
+	base_scale = value
 	_update_visual_state()
 
 
@@ -194,7 +220,8 @@ func _draw() -> void:
 			2
 		)
 
-	_draw_box(shadow_rect, shadow_color, Color(0, 0, 0, 0), CHASSIS_CORNER, 0)
+	if show_shadow:
+		_draw_box(shadow_rect, shadow_color, Color(0, 0, 0, 0), CHASSIS_CORNER, 0)
 	_draw_side_polygons(face_rect, chassis_rect, chassis_tint, edge_tint)
 	_draw_box(chassis_rect, chassis_tint, edge_tint.darkened(0.12), CHASSIS_CORNER, 2)
 	_draw_box(face_rect, face_tint, border_tint, FACE_CORNER, 2)
@@ -289,20 +316,30 @@ func _update_visual_state() -> void:
 	elif hover_active and is_clickable:
 		target_shine = 0.55
 
-	var target_scale := Vector2.ONE
+	var target_multiplier := Vector2.ONE
 	if is_selected:
-		target_scale = Vector2(1.08, 1.08)
+		target_multiplier = Vector2(1.08, 1.08)
 	elif hover_active and is_clickable:
-		target_scale = Vector2(1.03, 1.03)
+		target_multiplier = Vector2(1.03, 1.03)
+
+	if is_highlighted and not is_selected:
+		target_lift = maxf(target_lift, 0.32)
+		target_glow = maxf(target_glow, 0.70)
+		target_shine = maxf(target_shine, 0.65)
+		target_multiplier = Vector2(maxf(target_multiplier.x, 1.05), maxf(target_multiplier.y, 1.05))
 
 	if is_pressing and is_clickable:
-		target_scale *= Vector2(0.985, 0.94)
+		target_multiplier *= Vector2(0.985, 0.94)
+
+	var target_scale := base_scale * target_multiplier
 
 	var target_rotation := 0.0
 	if is_selected:
 		target_rotation = -1.2
 	elif hover_active and is_clickable:
 		target_rotation = -0.5
+	if is_highlighted and not is_selected:
+		target_rotation = minf(target_rotation, -0.45)
 
 	_state_tween = create_tween()
 	_state_tween.set_parallel(true)

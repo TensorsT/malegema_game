@@ -53,7 +53,7 @@ horizontal_alignment = 1
 
 [node name="StatusLabel" type="Label" parent="GamePanel/VBoxContainer" unique_id=1398690485]
 layout_mode = 2
-text = "请选择两张相同牌进行消除"
+text = "请选择两张可点击的相同牌。"
 horizontal_alignment = 1
 
 [node name="BoardContainer" type="Control" parent="GamePanel/VBoxContainer" unique_id=615623911]
@@ -135,6 +135,12 @@ theme_override_font_sizes/font_size = 24
 layout_mode = 2
 text = "重新开局"
 
+[node name="SaveExitButton" type="Button" parent="GamePanel/VBoxContainer/ActionRow" unique_id=579364540]
+custom_minimum_size = Vector2(170, 56)
+theme_override_font_sizes/font_size = 24
+layout_mode = 2
+text = "保存退出"
+
 [node name="BackButton" type="Button" parent="GamePanel/VBoxContainer/ActionRow" unique_id=1163141242]
 custom_minimum_size = Vector2(170, 56)
 theme_override_font_sizes/font_size = 24
@@ -142,4 +148,5 @@ layout_mode = 2
 text = "返回菜单"
 
 [connection signal="pressed" from="GamePanel/VBoxContainer/ActionRow/RestartButton" to="." method="_on_restart_button_pressed"]
+[connection signal="pressed" from="GamePanel/VBoxContainer/ActionRow/SaveExitButton" to="." method="_on_save_exit_button_pressed"]
 [connection signal="pressed" from="GamePanel/VBoxContainer/ActionRow/BackButton" to="." method="_on_back_button_pressed"]

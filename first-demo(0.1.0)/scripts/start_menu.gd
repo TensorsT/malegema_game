@@ -5,6 +5,8 @@ extends Control
 @onready var subtitle_label: Label = $MainPanel/VBoxContainer/SubtitleLabel
 @onready var start_button: Button = $MainPanel/VBoxContainer/StartButton
 @onready var help_button: Button = $MainPanel/VBoxContainer/HelpButton
+@onready var tutorial_button: Button = $MainPanel/VBoxContainer/TutorialButton
+@onready var continue_button: Button = $MainPanel/VBoxContainer/ContinueButton
 @onready var settings_button: Button = $MainPanel/VBoxContainer/SettingsButton
 @onready var help_popup: PopupPanel = $HelpPopup
 @onready var settings_popup: PopupPanel = $SettingsPopup
@@ -26,7 +28,29 @@ func _ready() -> void:
 
 func _on_start_button_pressed() -> void:
 	status_label.text = "进入最小可玩局..."
-	RunManager.start_new_run()
+	if not TutorialBoard.is_tutorial_completed():
+		RunManager.start_tutorial()
+		RunManager.enter_stage(RunManager.STAGE_INTRO)
+	else:
+		RunManager.start_new_run()
+		RunManager.enter_stage(RunManager.STAGE_GAME)
+
+
+func _on_tutorial_button_pressed() -> void:
+	status_label.text = "进入教程..."
+	RunManager.start_tutorial()
+	RunManager.enter_stage(RunManager.STAGE_INTRO)
+
+
+func _on_continue_button_pressed() -> void:
+	status_label.text = "继续游戏..."
+	var save_data := SaveManager.load_game()
+	if save_data.is_empty():
+		status_label.text = "没有存档，开始新游戏..."
+		RunManager.start_new_run()
+		RunManager.enter_stage(RunManager.STAGE_GAME)
+		return
+	SaveManager.request_restore()
 	RunManager.enter_stage(RunManager.STAGE_GAME)
 
 func _on_help_button_pressed() -> void:
@@ -59,6 +83,8 @@ func _apply_whatajong_ui() -> void:
 
 	WhatajongUI.apply_display_font(title_label)
 	WhatajongUI.apply_display_font(start_button)
+	WhatajongUI.apply_display_font(tutorial_button)
+	WhatajongUI.apply_display_font(continue_button)
 	WhatajongUI.apply_display_font(help_button)
 	WhatajongUI.apply_display_font(settings_button)
 	WhatajongUI.apply_display_font(help_title)
@@ -67,6 +93,8 @@ func _apply_whatajong_ui() -> void:
 	WhatajongUI.apply_display_font(close_settings_button)
 
 	WhatajongUI.apply_button(start_button, WhatajongUI.COLOR_CRACK)
+	WhatajongUI.apply_button(tutorial_button, WhatajongUI.COLOR_DOT)
+	WhatajongUI.apply_button(continue_button, WhatajongUI.COLOR_BAM)
 	WhatajongUI.apply_button(help_button, WhatajongUI.COLOR_DOT)
 	WhatajongUI.apply_button(settings_button, WhatajongUI.COLOR_BAM)
 	WhatajongUI.apply_button(close_help_button, WhatajongUI.COLOR_DOT, 0.88)

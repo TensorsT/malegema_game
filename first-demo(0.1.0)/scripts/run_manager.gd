@@ -8,7 +8,7 @@ const STAGE_SHOP := "shop"
 const STAGE_END := "end"
 
 const STAGE_SCENES := {
-	STAGE_INTRO: "res://scene/gameStar.tscn",
+	STAGE_INTRO: "res://scene/tutorial.tscn",
 	STAGE_GAME: "res://scene/board.tscn",
 	STAGE_SETTLEMENT: "res://scene/run_end.tscn",
 	STAGE_REWARD: "res://scene/run_reward.tscn",
@@ -26,6 +26,11 @@ func has_active_run() -> bool:
 	return not run.is_empty()
 
 
+func ensure_deck_initialized() -> void:
+	if deck.is_empty():
+		deck = DeckState.create_initial_deck()
+
+
 func start_new_run(run_id: String = "") -> void:
 	if run_id == "":
 		run_id = _generate_run_id()
@@ -34,6 +39,10 @@ func start_new_run(run_id: String = "") -> void:
 	deck = DeckState.create_initial_deck()
 	levels = RunState.get_levels(run_id)
 	last_round_result = {}
+
+
+func start_tutorial() -> void:
+	start_new_run(RunState.TUTORIAL_SEED)
 
 
 func enter_stage(stage: String) -> void:
@@ -49,7 +58,18 @@ func enter_stage(stage: String) -> void:
 func get_round() -> Dictionary:
 	if not has_active_run():
 		return {}
-	return RunState.generate_round(int(run.get("round", 1)), run)
+	var round := RunState.generate_round(int(run.get("round", 1)), run)
+	var run_id := String(run.get("runId", ""))
+	var round_id := int(run.get("round", 1))
+	var max_points_map: Dictionary = run.get("roundMaxPoints", {}) as Dictionary
+	if run_id != "":
+		var key := "%s-%d" % [run_id, round_id]
+		if max_points_map.has(key):
+			var max_points := int(max_points_map.get(key, 0))
+			if max_points > 0:
+				var capped := int(floor(max_points * 0.85))
+				round["pointObjective"] = min(int(round.get("pointObjective", 0)), capped)
+	return round
 
 
 func get_round_rng() -> RandomNumberGenerator:

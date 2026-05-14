@@ -1,5 +1,7 @@
 extends Control
 
+const TILE_SCENE := preload("res://scene/Tile.tscn")
+
 const MATERIAL_NAMES := {
 	"bone": "骨牌",
 	"topaz": "黄玉",
@@ -77,13 +79,31 @@ var _selected_item_id := ""
 var _active_tab := "detail"
 var _last_changed_card_id := ""
 var _deck_tab_tween: Tween
+var _inventory_popup: InventoryPopup
+var _detail_tile: Tile
 
 
 func _ready() -> void:
+	RunManager.ensure_deck_initialized()
 	detail_tab_button.pressed.connect(_on_detail_tab_pressed)
 	deck_tab_button.pressed.connect(_on_deck_tab_pressed)
 	_apply_ui()
+	_setup_detail_tile()
+	_inventory_popup = InventoryPopup.new()
+	_inventory_popup.create(self)
+	_setup_inventory_button()
 	_refresh_items()
+
+
+func _setup_detail_tile() -> void:
+	_detail_tile = TILE_SCENE.instantiate() as Tile
+	_detail_tile.name = "DetailTile"
+	_detail_tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail_tile.set_base_scale(Vector2(1.08, 1.08))
+	_detail_tile.visible = false
+	var parent := detail_icon.get_parent()
+	parent.add_child(_detail_tile)
+	parent.move_child(_detail_tile, detail_icon.get_index())
 
 
 func _apply_ui() -> void:
@@ -146,13 +166,16 @@ func _build_item_row(item: Dictionary) -> Control:
 	var card_id := String(item.get("cardId", ""))
 	var item_id := String(item.get("id", ""))
 	var cost := int(item.get("cost", 0))
+	var is_frozen := _is_item_frozen(item_id)
 	var select_button := Button.new()
-	select_button.text = _format_item_button_text(card_id, cost)
+	select_button.text = _format_item_button_text(card_id, cost, is_frozen)
 	select_button.toggle_mode = true
 	select_button.custom_minimum_size = Vector2(0, 56)
 	select_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	WhatajongUI.apply_button(select_button, _accent_for_card(card_id), 0.92, WhatajongUI.FONT_SIZE_BODY)
 	select_button.pressed.connect(_on_item_select_pressed.bind(item))
+	if is_frozen:
+		select_button.modulate = Color(0.80, 0.92, 1.0, 1.0)
 	_item_buttons[item_id] = select_button
 
 	var buy_button := Button.new()
@@ -234,8 +257,10 @@ func _update_item_detail(item: Dictionary) -> void:
 		rank_text = "    序号：%s" % rank
 
 	detail_title_label.text = _get_card_display_name(card_id)
-	detail_icon.texture = _get_item_icon(card_id)
-	detail_icon.tooltip_text = card_id
+	_detail_tile.visible = true
+	_detail_tile.setup("detail_" + card_id, card_id, _get_item_icon(card_id), "bone")
+	_detail_tile.set_shadow_enabled(false)
+	detail_icon.visible = false
 	detail_cost_label.text = "价格：%d 金币" % cost
 	detail_stats_label.text = "类型：%s    点数：%d    颜色：%s%s" % [
 		_get_suit_name(suit),
@@ -264,8 +289,11 @@ func _clear_item_detail() -> void:
 	_selected_item_id = ""
 	_update_item_button_states()
 	detail_title_label.text = "选择商品"
+	if _detail_tile != null:
+		_detail_tile.visible = false
 	detail_icon.texture = null
 	detail_icon.tooltip_text = ""
+	detail_icon.visible = false
 	detail_cost_label.text = "价格：-"
 	detail_stats_label.text = ""
 	detail_deck_label.text = ""
@@ -290,7 +318,6 @@ func _set_active_tab(tab: String) -> void:
 
 	for control in [
 		detail_title_label,
-		detail_icon,
 		detail_cost_label,
 		detail_stats_label,
 		detail_deck_label,
@@ -298,6 +325,9 @@ func _set_active_tab(tab: String) -> void:
 		detail_hint_label,
 	]:
 		(control as CanvasItem).visible = show_detail
+	detail_icon.visible = false
+	if _detail_tile != null:
+		_detail_tile.visible = show_detail and _selected_item_id != ""
 
 	deck_summary_label.visible = not show_detail
 	deck_scroll.visible = not show_detail
@@ -524,9 +554,43 @@ func _get_deck_tiles_by_card_id(card_id: String) -> Array:
 	return tiles
 
 
-func _format_item_button_text(card_id: String, cost: int) -> String:
+func _get_selected_card_id() -> String:
+	for item in _current_items:
+		var entry: Dictionary = item
+		if String(entry.get("id", "")) == _selected_item_id:
+			return String(entry.get("cardId", ""))
+	return ""
+
+
+func _is_item_frozen(item_id: String) -> bool:
+	var freeze: Dictionary = RunManager.run.get("freeze", {})
+	for entry in freeze.get("items", []):
+		if String(entry) == item_id:
+			return true
+	return false
+
+
+func _remove_frozen_item(item_id: String) -> void:
+	var freeze: Dictionary = RunManager.run.get("freeze", {})
+	if freeze.is_empty():
+		return
+	var frozen_ids: Array[String] = []
+	for entry in freeze.get("items", []):
+		var value := String(entry)
+		if value != item_id:
+			frozen_ids.append(value)
+	if frozen_ids.is_empty():
+		RunManager.run["freeze"] = {}
+		return
+	freeze["items"] = frozen_ids
+	RunManager.run["freeze"] = freeze
+
+
+func _format_item_button_text(card_id: String, cost: int, is_frozen: bool) -> String:
 	var card := CardData.get_card_by_id(card_id)
-	return "%s    $%d    %s" % [
+	var prefix := "❄ " if is_frozen else ""
+	return "%s%s    $%d    %s" % [
+		prefix,
 		card_id,
 		cost,
 		_get_suit_name(String(card.get("suit", ""))),
@@ -769,16 +833,18 @@ func _update_freeze_label() -> void:
 	if freeze.is_empty():
 		freeze_button.text = "冻结"
 		return
-	if bool(freeze.get("active", false)):
-		freeze_button.text = "取消冻结"
-	else:
-		freeze_button.text = "冻结"
+	var frozen_count := int((freeze.get("items", []) as Array).size())
+	if frozen_count > 0:
+		freeze_button.text = "冻结 x%d" % frozen_count
+		return
+	freeze_button.text = "冻结"
 
 
 func _on_buy_pressed(item: Dictionary) -> void:
 	_select_item(item, false)
 	var card_id := String(item.get("cardId", ""))
 	if RunState.buy_tile(RunManager.run, item, RunManager.deck):
+		_remove_frozen_item(String(item.get("id", "")))
 		_last_changed_card_id = card_id
 		_refresh_items()
 		status_label.text = "已加入牌组：%s · 下局生效" % _get_card_display_name(card_id)
@@ -793,6 +859,7 @@ func _on_upgrade_pressed(item: Dictionary, path: String) -> void:
 	var deck_tiles := _get_deck_tiles_by_card_id(card_id)
 	var next_material := RunState.get_next_material(deck_tiles, path)
 	if RunState.upgrade_tile(RunManager.run, item, RunManager.deck, path):
+		_remove_frozen_item(String(item.get("id", "")))
 		_last_changed_card_id = card_id
 		_refresh_items()
 		status_label.text = "已升级：%s -> %s · 下局生效" % [
@@ -812,9 +879,10 @@ func _on_reroll_button_pressed() -> void:
 		return
 
 	var freeze: Dictionary = RunManager.run.get("freeze", {})
-	if not freeze.is_empty():
-		if not bool(freeze.get("active", false)):
-			RunManager.run["freeze"] = {}
+	if not freeze.is_empty() and bool(freeze.get("active", false)):
+		freeze["round"] = int(RunManager.run.get("round", 1))
+		freeze["reroll"] = int(RunManager.run.get("reroll", 0))
+		RunManager.run["freeze"] = freeze
 
 	RunManager.run["money"] = money - cost
 	RunManager.run["reroll"] = int(RunManager.run.get("reroll", 0)) + 1
@@ -822,16 +890,30 @@ func _on_reroll_button_pressed() -> void:
 
 
 func _on_freeze_button_pressed() -> void:
+	if _selected_item_id == "":
+		status_label.text = "请先选择要冻结的商品。"
+		return
 	var freeze: Dictionary = RunManager.run.get("freeze", {})
-	if freeze.is_empty():
+	var frozen_ids: Array[String] = []
+	for entry in freeze.get("items", []):
+		frozen_ids.append(String(entry))
+	var index := frozen_ids.find(_selected_item_id)
+	if index == -1:
+		frozen_ids.append(_selected_item_id)
+		status_label.text = "已冻结：%s" % _get_card_display_name(_get_selected_card_id())
+	else:
+		frozen_ids.remove_at(index)
+		status_label.text = "已取消冻结：%s" % _get_card_display_name(_get_selected_card_id())
+
+	if frozen_ids.is_empty():
+		RunManager.run["freeze"] = {}
+	else:
 		RunManager.run["freeze"] = {
 			"round": int(RunManager.run.get("round", 1)),
 			"reroll": int(RunManager.run.get("reroll", 0)),
 			"active": true,
+			"items": frozen_ids,
 		}
-	else:
-		freeze["active"] = not bool(freeze.get("active", false))
-		RunManager.run["freeze"] = freeze
 
 	_refresh_items()
 
@@ -839,3 +921,22 @@ func _on_freeze_button_pressed() -> void:
 func _on_continue_button_pressed() -> void:
 	RunManager.advance_to_next_round()
 	RunManager.enter_stage(RunManager.STAGE_GAME)
+
+
+func _setup_inventory_button() -> void:
+	var btn := Button.new()
+	btn.text = "背包"
+	btn.custom_minimum_size = Vector2(90, 38)
+	WhatajongUI.apply_button(btn, WhatajongUI.COLOR_DOT, 0.88)
+	btn.pressed.connect(_on_inventory_pressed)
+	btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	btn.offset_left = -110
+	btn.offset_top = 10
+	btn.offset_right = -10
+	btn.offset_bottom = 50
+	shop_panel.add_child(btn)
+
+
+func _on_inventory_pressed() -> void:
+	RunManager.ensure_deck_initialized()
+	_inventory_popup.show_inventory(RunManager.deck, [] as Array[String])

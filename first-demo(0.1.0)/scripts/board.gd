@@ -13,6 +13,9 @@ const TILE_SCENE := preload("res://scene/Tile.tscn")
 const WIND_GUST_OVERLAY_SCRIPT := preload("res://scripts/wind_gust_overlay.gd")
 const CLICK_STREAM := preload("res://sounds/click.mp3")
 const MATCH_STREAM := preload("res://sounds/gemstone.mp3")
+const MATCH_PARTICLES := preload("res://scene/MatchParticles.tscn")
+const SELECT_PARTICLES := preload("res://scene/SelectParticles.tscn")
+const AMBIENT_PARTICLES := preload("res://scene/AmbientParticles.tscn")
 
 const STEP_X := 40
 const STEP_Y := 54
@@ -36,6 +39,7 @@ const WIND_OVERSHOOT_PX := 18.0
 @onready var board_inset: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardInset
 @onready var board_glow: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardGlow
 @onready var restart_button: Button = $GamePanel/VBoxContainer/ActionRow/RestartButton
+@onready var save_exit_button: Button = $GamePanel/VBoxContainer/ActionRow/SaveExitButton
 @onready var back_button: Button = $GamePanel/VBoxContainer/ActionRow/BackButton
 
 var tile_db: Dictionary = {}
@@ -49,6 +53,9 @@ var wind_gust_overlay: Control
 var board_tween: Tween
 var _layout_scale: float = 1.0
 var _round_end_pending := false
+var _ambient_particles: CPUParticles2D
+var _inventory_popup: InventoryPopup
+var _active_card_ids: Array[String] = []
 
 var game_state := {
 	"points": 0,
@@ -63,12 +70,20 @@ var game_state := {
 
 
 func _ready() -> void:
+	# 强制确保背包有初始牌
+	if RunManager.deck.is_empty():
+		RunManager.deck = DeckState.create_initial_deck()
 	_apply_whatajong_ui()
 	_setup_audio()
 	_setup_wind_gust_overlay()
+	_setup_ambient_particles()
+	_setup_inventory()
 	board_container.resized.connect(_on_board_container_resized)
 	_on_board_container_resized()
-	_setup_new_round()
+	if SaveManager.consume_restore():
+		_load_saved_board()
+	else:
+		_setup_new_round()
 	set_process(true)
 
 
@@ -83,6 +98,7 @@ func _setup_new_round() -> void:
 	_kill_tile_motion_tweens()
 	tile_db.clear()
 	tile_nodes.clear()
+	_active_card_ids.clear()
 	_round_end_pending = false
 	game_state = {
 		"points": 0,
@@ -102,10 +118,22 @@ func _setup_new_round() -> void:
 	board_container.rotation_degrees = 0.0
 	restart_button.text = "重新开局"
 
+	# 确保背包有初始牌
+	if RunManager.deck.is_empty():
+		RunManager.deck = DeckState.create_initial_deck()
+	RunManager.ensure_deck_initialized()
+
 	var deck: Array[Dictionary] = []
 	var rng: RandomNumberGenerator
 	if RunManager.has_active_run():
-		deck = RunManager.deck
+		# 从背包中随机抽取牌放到本回合牌桌（最多20张，保证分数足够过关）
+		var table_count: int = int(min(RunManager.deck.size(), 20))
+		var shuffled := RunManager.deck.duplicate(true)
+		shuffled.shuffle()
+		for i in range(table_count):
+			deck.append(shuffled[i])
+			_active_card_ids.append(String(shuffled[i].get("cardId", "")))
+		_remember_round_max_points(deck)
 		rng = RunManager.get_round_rng()
 		_apply_round_header()
 	else:
@@ -139,8 +167,10 @@ func _apply_whatajong_ui() -> void:
 	WhatajongUI.apply_panel(game_panel, WhatajongUI.COLOR_DOT, Color(0.97, 0.94, 0.86, 0.86), 30, 22)
 	WhatajongUI.apply_display_font(title_label, WhatajongUI.FONT_SIZE_TITLE)
 	WhatajongUI.apply_display_font(restart_button, WhatajongUI.FONT_SIZE_BUTTON)
+	WhatajongUI.apply_display_font(save_exit_button, WhatajongUI.FONT_SIZE_BUTTON)
 	WhatajongUI.apply_display_font(back_button, WhatajongUI.FONT_SIZE_BUTTON)
 	WhatajongUI.apply_button(restart_button, WhatajongUI.COLOR_CRACK, 0.90)
+	WhatajongUI.apply_button(save_exit_button, WhatajongUI.COLOR_BAM, 0.92)
 	WhatajongUI.apply_button(back_button, WhatajongUI.COLOR_DOT, 0.90)
 	WhatajongUI.tint_label(title_label, WhatajongUI.COLOR_DOT.darkened(0.38))
 	WhatajongUI.tint_body_text(score_label, WhatajongUI.COLOR_TEXT, WhatajongUI.FONT_SIZE_BODY)
@@ -171,6 +201,7 @@ func _on_tile_pressed(tile_id: String) -> void:
 		return
 
 	_play_click_sound(1.02, -8.0)
+	var first_tile := GameLoop._find_selected_tile(tile_db)
 	var wind_direction := _get_wind_direction_for_tile(tile)
 	var motion_snapshot := _snapshot_live_tile_views()
 	var result := GameLoop.select_tile(tile_db, game_state, tile_id)
@@ -178,7 +209,7 @@ func _on_tile_pressed(tile_id: String) -> void:
 	_refresh_tiles_state(motion_map)
 	if String(result.get("kind", "")) == "matched" and wind_direction != Vector2.ZERO:
 		_play_wind_gust(wind_direction)
-	_play_result_feedback(result)
+	_play_result_feedback(result, first_tile, tile_id)
 	_status_from_result(result)
 	_update_score_label()
 	if String(game_state.get("end_condition", "")) != "":
@@ -229,9 +260,12 @@ func _apply_tile_visual(tile_id: String, motion_map: Dictionary = {}) -> void:
 	var card_id := String(tile["card_id"])
 	var material_name := String(tile.get("material", "bone"))
 	var scale := _get_layout_scale()
+	var base_scale := maxf(1.0, scale)
 	tile_node.visible = true
-	tile_node.setup(tile_id, card_id, _get_icon(card_id), material_name)
-	tile_node.scale = Vector2(scale, scale)
+	# 只在牌面数据变化时才重新 setup，避免每帧/每次点击都重绘所有牌
+	if tile_node.tile_type != card_id or tile_node.tile_material != material_name:
+		tile_node.setup(tile_id, card_id, _get_icon(card_id), material_name)
+	tile_node.set_base_scale(Vector2(base_scale, base_scale))
 
 	var free := TileRules.is_free(tile_db, tile)
 	tile_node.set_clickable(free)
@@ -634,15 +668,16 @@ func _play_match_sound() -> void:
 	match_player.play()
 
 
-func _play_result_feedback(result: Dictionary) -> void:
+func _play_result_feedback(result: Dictionary, first_tile: Dictionary = {}, second_tile_id: String = "") -> void:
 	match String(result.get("kind", "")):
 		"matched":
 			_play_match_sound()
-			_play_board_bump(true)
+			_spawn_match_particles(first_tile, second_tile_id)
 		"mismatch":
-			_play_board_bump(false)
+			pass
 		"selected-first":
-			_play_board_tap()
+			_spawn_select_particles(second_tile_id)
+			pass
 		_:
 			pass
 
@@ -693,5 +728,209 @@ func _on_board_container_resized() -> void:
 	_update_board_pivot()
 	if wind_gust_overlay != null and is_instance_valid(wind_gust_overlay):
 		_fit_control_to_parent(wind_gust_overlay)
+	if _ambient_particles != null:
+		_ambient_particles.position = board_container.size * 0.5
 	if not tile_db.is_empty():
 		_refresh_tiles_state()
+
+
+func _setup_ambient_particles() -> void:
+	_ambient_particles = AMBIENT_PARTICLES.instantiate() as CPUParticles2D
+	board_container.add_child(_ambient_particles)
+	_ambient_particles.position = board_container.size * 0.5
+	_ambient_particles.z_index = -10
+
+
+func _spawn_match_particles(first_tile: Dictionary, second_tile_id: String) -> void:
+	if first_tile.is_empty() or not tile_db.has(second_tile_id):
+		return
+	var pos1 := _to_screen_position(first_tile)
+	var pos2 := _to_screen_position(tile_db[second_tile_id])
+	var mid := (pos1 + pos2) * 0.5 + Vector2(41, 60)
+	var particles := MATCH_PARTICLES.instantiate() as CPUParticles2D
+	tile_layer.add_child(particles)
+	particles.position = mid
+	particles.emitting = true
+	particles.finished.connect(particles.queue_free)
+
+
+func _spawn_select_particles(tile_id: String) -> void:
+	if not tile_db.has(tile_id):
+		return
+	var pos := _to_screen_position(tile_db[tile_id]) + Vector2(41, 60)
+	var particles := SELECT_PARTICLES.instantiate() as CPUParticles2D
+	tile_layer.add_child(particles)
+	particles.position = pos
+	particles.emitting = true
+	particles.finished.connect(particles.queue_free)
+
+
+func _on_save_exit_button_pressed() -> void:
+	SaveManager.save_game(tile_db, game_state)
+	status_label.text = "游戏已保存，返回主菜单..."
+	get_tree().change_scene_to_file("res://scene/gameStar.tscn")
+
+
+func _setup_inventory() -> void:
+	_inventory_popup = InventoryPopup.new()
+	_inventory_popup.create(self)
+
+	var inv_button := Button.new()
+	inv_button.text = "背包"
+	inv_button.custom_minimum_size = Vector2(90, 38)
+	WhatajongUI.apply_button(inv_button, WhatajongUI.COLOR_DOT, 0.88)
+	inv_button.pressed.connect(_on_inventory_pressed)
+
+	inv_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	inv_button.offset_left = -110
+	inv_button.offset_top = 10
+	inv_button.offset_right = -10
+	inv_button.offset_bottom = 50
+	game_panel.add_child(inv_button)
+
+
+func _on_inventory_pressed() -> void:
+	RunManager.ensure_deck_initialized()
+	_inventory_popup.show_inventory(RunManager.deck, _active_card_ids)
+
+
+func _load_saved_board() -> void:
+	# 旧存档可能没有 deck 数据，强制补全
+	if RunManager.deck.is_empty():
+		RunManager.deck = DeckState.create_initial_deck()
+	RunManager.ensure_deck_initialized()
+	var save_data := SaveManager.load_game()
+	if save_data.is_empty():
+		_setup_new_round()
+		return
+
+	# 清理旧牌
+	for child in tile_layer.get_children():
+		child.queue_free()
+	tile_db.clear()
+	tile_nodes.clear()
+	icon_cache.clear()
+
+	# 恢复 game_state
+	var saved_state: Dictionary = save_data.get("game_state", {})
+	game_state = {
+		"points": int(saved_state.get("points", 0)),
+		"coins": int(saved_state.get("coins", 0)),
+		"time": float(saved_state.get("time", 0.0)),
+		"end_condition": String(saved_state.get("end_condition", "")),
+		"dragon_run": saved_state.get("dragon_run", {}),
+		"phoenix_run": saved_state.get("phoenix_run", {}),
+		"temporary_material": String(saved_state.get("temporary_material", "")),
+		"enabled_modules": saved_state.get("enabled_modules", GameLoop.MODULE_ORDER.duplicate()),
+	}
+
+	# 恢复 tile_db
+	var saved_tile_db: Dictionary = save_data.get("tile_db", {})
+	for tile_id in saved_tile_db.keys():
+		var tile: Dictionary = saved_tile_db[tile_id]
+		tile_db[tile_id] = {
+			"id": String(tile.get("id", tile_id)),
+			"card_id": String(tile.get("card_id", "bam1")),
+			"material": String(tile.get("material", "bone")),
+			"x": int(tile.get("x", 0)),
+			"y": int(tile.get("y", 0)),
+			"z": int(tile.get("z", 0)),
+			"deleted": bool(tile.get("deleted", false)),
+			"selected": bool(tile.get("selected", false)),
+		}
+
+	# 存档恢复时补齐 roundMaxPoints，确保目标分数可通关。
+	_remember_round_max_points_from_tile_db()
+
+	# 重建牌节点
+	for tile in _sorted_tiles(tile_db):
+		var tile_id := String(tile["id"])
+		var card_id := String(tile["card_id"])
+		var material_name := String(tile.get("material", "bone"))
+		var tile_node := TILE_SCENE.instantiate() as Tile
+		tile_layer.add_child(tile_node)
+		tile_node.setup(tile_id, card_id, _get_icon(card_id), material_name)
+		tile_node.position = _to_screen_position(tile)
+		tile_node.z_index = int(tile["z"]) * 100 + int(tile["x"]) + int(tile["y"]) * 2
+		tile_node.tile_clicked.connect(_on_tile_pressed)
+		tile_node.tree_exited.connect(_on_tile_node_tree_exited.bind(tile_id, tile_node))
+		tile_nodes[tile_id] = tile_node
+
+	_refresh_tiles_state()
+	_update_score_label()
+
+	if RunManager.has_active_run():
+		var round := RunManager.get_round()
+		var round_id := int(RunManager.run.get("round", 1))
+		var objective := int(round.get("pointObjective", 0))
+		title_label.text = "第 %d 回合" % round_id
+		status_label.text = "继续游戏，当前分数：%d" % int(game_state["points"])
+	else:
+		status_label.text = "继续游戏，当前分数：%d" % int(game_state["points"])
+
+
+func _remember_round_max_points(table_deck: Array[Dictionary]) -> void:
+	if not RunManager.has_active_run():
+		return
+	var run_id := String(RunManager.run.get("runId", ""))
+	if run_id == "":
+		return
+	var round_id := int(RunManager.run.get("round", 1))
+	var key := "%s-%d" % [run_id, round_id]
+	var map = RunManager.run.get("roundMaxPoints", {})
+	var max_points_map: Dictionary = map if map is Dictionary else {}
+	if max_points_map.has(key):
+		return
+	max_points_map[key] = _estimate_table_max_points(table_deck)
+	RunManager.run["roundMaxPoints"] = max_points_map
+
+
+func _estimate_table_max_points(table_deck: Array[Dictionary]) -> int:
+	var dummy_state := {
+		"dragon_run": {},
+		"phoenix_run": {},
+		"temporary_material": "",
+	}
+	var total := 0
+	for d in table_deck:
+		var card_id := String(d.get("cardId", ""))
+		if card_id == "":
+			card_id = String(d.get("card_id", ""))
+		var material := String(d.get("material", "bone"))
+		var tile := {"card_id": card_id, "material": material}
+		total += GameLoop.get_points(tile, dummy_state) * 2
+	return total
+
+
+func _remember_round_max_points_from_tile_db() -> void:
+	if not RunManager.has_active_run():
+		return
+	var run_id := String(RunManager.run.get("runId", ""))
+	if run_id == "":
+		return
+	var round_id := int(RunManager.run.get("round", 1))
+	var key := "%s-%d" % [run_id, round_id]
+	var map = RunManager.run.get("roundMaxPoints", {})
+	var max_points_map: Dictionary = map if map is Dictionary else {}
+	if max_points_map.has(key):
+		return
+	max_points_map[key] = _estimate_tile_db_max_points(tile_db)
+	RunManager.run["roundMaxPoints"] = max_points_map
+
+
+func _estimate_tile_db_max_points(db: Dictionary) -> int:
+	var dummy_state := {
+		"dragon_run": {},
+		"phoenix_run": {},
+		"temporary_material": "",
+	}
+	var total := 0
+	for v in db.values():
+		if not (v is Dictionary):
+			continue
+		var t: Dictionary = v
+		var card_id := String(t.get("card_id", ""))
+		var material := String(t.get("material", "bone"))
+		var tile := {"card_id": card_id, "material": material}
+		total += GameLoop.get_points(tile, dummy_state)
+	return total

@@ -202,12 +202,41 @@ static func generate_items(run: Dictionary, levels: Array) -> Array:
 		if not item_ids.has(String(item.get("id", ""))):
 			filtered.append(item)
 
+	var frozen_ids: Array = []
+	if freeze_active:
+		for entry in freeze.get("items", []):
+			frozen_ids.append(String(entry))
+	var frozen_map := {}
+	for frozen_id in frozen_ids:
+		frozen_map[frozen_id] = true
+
+	var frozen_items: Array = []
+	if freeze_active and not frozen_ids.is_empty():
+		var pool_by_id := {}
+		for item in initial_pool:
+			pool_by_id[String(item.get("id", ""))] = item
+		for frozen_id in frozen_ids:
+			if pool_by_id.has(frozen_id):
+				frozen_items.append(pool_by_id[frozen_id])
+
 	var items: Array = []
-	for i in range(ITEM_COUNT):
-		if filtered.is_empty():
+	for frozen_item in frozen_items:
+		if items.size() >= ITEM_COUNT:
 			break
-		var index := (start + i) % filtered.size()
-		items.append(filtered[index])
+		items.append(frozen_item)
+
+	var available: Array = []
+	for item in filtered:
+		var item_id := String(item.get("id", ""))
+		if frozen_map.has(item_id):
+			continue
+		available.append(item)
+
+	for i in range(ITEM_COUNT - items.size()):
+		if available.is_empty():
+			break
+		var index := (start + i) % available.size()
+		items.append(available[index])
 
 	return items
 

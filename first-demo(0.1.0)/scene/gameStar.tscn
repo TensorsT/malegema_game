@@ -52,6 +52,16 @@ custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "开始游戏"
 
+[node name="TutorialButton" type="Button" parent="MainPanel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "教程"
+
+[node name="ContinueButton" type="Button" parent="MainPanel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "继续游戏"
+
 [node name="HelpButton" type="Button" parent="MainPanel/VBoxContainer" unique_id=1772634866]
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
@@ -162,6 +172,8 @@ layout_mode = 2
 text = "保存并关闭"
 
 [connection signal="pressed" from="MainPanel/VBoxContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="MainPanel/VBoxContainer/TutorialButton" to="." method="_on_tutorial_button_pressed"]
+[connection signal="pressed" from="MainPanel/VBoxContainer/ContinueButton" to="." method="_on_continue_button_pressed"]
 [connection signal="pressed" from="MainPanel/VBoxContainer/HelpButton" to="." method="_on_help_button_pressed"]
 [connection signal="pressed" from="MainPanel/VBoxContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="HelpPopup/MarginContainer/VBoxContainer/CloseHelpButton" to="." method="_on_close_help_pressed"]

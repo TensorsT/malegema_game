@@ -1,0 +1,150 @@
+[gd_scene format=3 uid="uid://djxypm6q06v4k"]
+
+[ext_resource type="Script" path="res://scripts/tutorial_board.gd" id="1_tutorial"]
+[ext_resource type="PackedScene" path="res://scene/WhatajongBackdrop.tscn" id="2_backdrop"]
+
+[node name="Tutorial" type="Control" unique_id=1789914969]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tutorial")
+
+[node name="Background" parent="." unique_id=628232074 instance=ExtResource("2_backdrop")]
+
+[node name="GamePanel" type="Panel" parent="." unique_id=1894885972]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -820.0
+offset_top = -500.0
+offset_right = 820.0
+offset_bottom = 500.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GamePanel" unique_id=447228058]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="GamePanel/VBoxContainer" unique_id=518198705]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "教程"
+horizontal_alignment = 1
+
+[node name="ScoreLabel" type="Label" parent="GamePanel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "已有分数：0 / 过关分数：0"
+horizontal_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="GamePanel/VBoxContainer" unique_id=1398690486]
+layout_mode = 2
+text = "欢迎来到教程"
+horizontal_alignment = 1
+
+[node name="BoardContainer" type="Control" parent="GamePanel/VBoxContainer" unique_id=615623912]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BoardShadow" type="ColorRect" parent="GamePanel/VBoxContainer/BoardContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 24.0
+offset_right = -20.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0117647, 0.0156863, 0.0235294, 0.55)
+
+[node name="BoardSurface" type="ColorRect" parent="GamePanel/VBoxContainer/BoardContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0784314, 0.239216, 0.196078, 1)
+
+[node name="BoardInset" type="ColorRect" parent="GamePanel/VBoxContainer/BoardContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -26.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0470588, 0.180392, 0.14902, 0.55)
+
+[node name="BoardGlow" type="ColorRect" parent="GamePanel/VBoxContainer/BoardContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 18.0
+offset_right = -24.0
+offset_bottom = -160.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.666667, 0.862745, 0.741176, 0.08)
+
+[node name="TileLayer" type="Control" parent="GamePanel/VBoxContainer/BoardContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ActionRow" type="HBoxContainer" parent="GamePanel/VBoxContainer" unique_id=649411473]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="RestartButton" type="Button" parent="GamePanel/VBoxContainer/ActionRow" unique_id=579364539]
+custom_minimum_size = Vector2(170, 56)
+theme_override_font_sizes/font_size = 24
+layout_mode = 2
+text = "重新开始"
+
+[node name="SaveExitButton" type="Button" parent="GamePanel/VBoxContainer/ActionRow" unique_id=579364540]
+custom_minimum_size = Vector2(170, 56)
+theme_override_font_sizes/font_size = 24
+layout_mode = 2
+text = "保存退出"
+
+[node name="BackButton" type="Button" parent="GamePanel/VBoxContainer/ActionRow" unique_id=1163141243]
+custom_minimum_size = Vector2(170, 56)
+theme_override_font_sizes/font_size = 24
+layout_mode = 2
+text = "返回菜单"
+
+[connection signal="pressed" from="GamePanel/VBoxContainer/ActionRow/RestartButton" to="." method="_on_restart_button_pressed"]
+[connection signal="pressed" from="GamePanel/VBoxContainer/ActionRow/SaveExitButton" to="." method="_on_save_exit_button_pressed"]
+[connection signal="pressed" from="GamePanel/VBoxContainer/ActionRow/BackButton" to="." method="_on_back_button_pressed"]
