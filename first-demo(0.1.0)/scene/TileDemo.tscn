@@ -1,0 +1,256 @@
+[gd_scene format=3 uid="uid://tile_demo_scene" load_steps=3]
+
+[ext_resource type="Script" path="res://scripts/tile_demo.gd" id="1_demo"]
+[ext_resource type="Script" path="res://scripts/tile_demo_drawer.gd" id="2_drawer"]
+
+[node name="TileDemo" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_demo")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.10, 0.14, 1.0)
+
+[node name="MainLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="TitleBar" type="HBoxContainer" parent="MainLayout"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainLayout/TitleBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "🎴 2.5D 麻将牌绘制演示"
+
+[node name="Spacer" type="Control" parent="MainLayout/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatusLabel" type="Label" parent="MainLayout/TitleBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.6, 0.65, 0.7, 1.0)
+text = "准备就绪"
+
+[node name="ContentArea" type="HBoxContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainLayout/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.35
+theme_override_constants/separation = 10
+
+[node name="StepSectionLabel" type="Label" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1.0)
+text = "步骤控制"
+
+[node name="StepControls" type="HBoxContainer" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PrevButton" type="Button" parent="MainLayout/ContentArea/LeftPanel/StepControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "◀ 上一步"
+
+[node name="StepSlider" type="HSlider" parent="MainLayout/ContentArea/LeftPanel/StepControls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 9.0
+step = 1.0
+value = 0.0
+
+[node name="NextButton" type="Button" parent="MainLayout/ContentArea/LeftPanel/StepControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "下一步 ▶"
+
+[node name="AutoButton" type="Button" parent="MainLayout/ContentArea/LeftPanel/StepControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "自动播放"
+
+[node name="StepLabel" type="Label" parent="MainLayout/ContentArea/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.92, 0.95, 1.0)
+text = "步骤 0：空白画布"
+
+[node name="HSeparator1" type="HSeparator" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+
+[node name="ParamSectionLabel" type="Label" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1.0)
+text = "参数调节（实时预览）"
+
+[node name="LiftRow" type="HBoxContainer" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainLayout/ContentArea/LeftPanel/LiftRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 0)
+text = "抬起高度"
+
+[node name="LiftSlider" type="HSlider" parent="MainLayout/ContentArea/LeftPanel/LiftRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+value = 0.0
+
+[node name="LiftValue" type="Label" parent="MainLayout/ContentArea/LeftPanel/LiftRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "0%"
+
+[node name="GlowRow" type="HBoxContainer" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainLayout/ContentArea/LeftPanel/GlowRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 0)
+text = "发光强度"
+
+[node name="GlowSlider" type="HSlider" parent="MainLayout/ContentArea/LeftPanel/GlowRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+value = 0.0
+
+[node name="GlowValue" type="Label" parent="MainLayout/ContentArea/LeftPanel/GlowRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "0%"
+
+[node name="ShineRow" type="HBoxContainer" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainLayout/ContentArea/LeftPanel/ShineRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 0)
+text = "高光强度"
+
+[node name="ShineSlider" type="HSlider" parent="MainLayout/ContentArea/LeftPanel/ShineRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+value = 28.0
+
+[node name="ShineValue" type="Label" parent="MainLayout/ContentArea/LeftPanel/ShineRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "28%"
+
+[node name="HSeparator2" type="HSeparator" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+
+[node name="ToggleSectionLabel" type="Label" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1.0)
+text = "显示选项"
+
+[node name="Toggles" type="HBoxContainer" parent="MainLayout/ContentArea/LeftPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="WireframeCheck" type="CheckBox" parent="MainLayout/ContentArea/LeftPanel/Toggles"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "线框模式"
+
+[node name="AccentColorButton" type="Button" parent="MainLayout/ContentArea/LeftPanel/Toggles"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "切换强调色"
+
+[node name="MaterialSelector" type="OptionButton" parent="MainLayout/ContentArea/LeftPanel/Toggles"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="CenterPanel" type="PanelContainer" parent="MainLayout/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.4
+
+[node name="CenterInner" type="CenterContainer" parent="MainLayout/ContentArea/CenterPanel"]
+layout_mode = 2
+
+[node name="TileDemoDrawer" type="Control" parent="MainLayout/ContentArea/CenterPanel/CenterInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 280)
+layout_mode = 2
+script = ExtResource("2_drawer")
+
+[node name="RightPanel" type="VBoxContainer" parent="MainLayout/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.35
+theme_override_constants/separation = 10
+
+[node name="DescSectionLabel" type="Label" parent="MainLayout/ContentArea/RightPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1.0)
+text = "当前步骤说明"
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="MainLayout/ContentArea/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "_draw() 开始执行，画布为空。所有视觉元素即将逐层叠加。"
+
+[node name="CodeSectionLabel" type="Label" parent="MainLayout/ContentArea/RightPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1.0)
+text = "对应代码"
+
+[node name="CodeLabel" type="RichTextLabel" parent="MainLayout/ContentArea/RightPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[code]func _draw():\\n    pass  # 画布为空[/code]"
+
+[node name="Footer" type="PanelContainer" parent="MainLayout"]
+layout_mode = 2
+
+[node name="FooterText" type="RichTextLabel" parent="MainLayout/Footer"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = "[color=#8899aa]💡 Godot 2D 功能展示：[/color] [b]_draw()[/b] 自定义绘制  |  [b]PackedVector2Array[/b] 多边形  |  [b]StyleBoxFlat[/b] 圆角矩形  |  [b]Tween[/b] 动画系统  |  [b]Control[/b] 布局系统  |  纯代码实现，零外部素材依赖（除图标外）"

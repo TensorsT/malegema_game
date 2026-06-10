@@ -1,2 +1,2 @@
-res://scripts/save_manager.gd
-res://scripts/start_menu.gd
+res://scripts/board.gd
+res://scripts/run_reward.gd

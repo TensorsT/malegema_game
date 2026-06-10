@@ -10,10 +10,13 @@ const BIASES := {
 
 
 static func apply(tile_db: Dictionary, tile: Dictionary) -> void:
+	# 1. 获取牌的信息
+	# 2. 不是风牌？直接返回
 	var card := CardData.get_card_by_id(String(tile["card_id"]))
 	if String(card.get("suit", "")) != "wind":
 		return
 
+	# 3. 获取风向（n/s/e/w）
 	var wind := String(card.get("rank", ""))
 	if not BIASES.has(wind):
 		return

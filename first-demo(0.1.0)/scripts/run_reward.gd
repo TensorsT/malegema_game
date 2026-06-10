@@ -52,13 +52,49 @@ func _build_rewards() -> void:
 		continue_button.disabled = true
 		return
 
-	status_label.text = "已选择奖励牌，点击继续进入商店。"
+	status_label.text = "奖励已获得！点击继续进入商店。"
 
 	for item in _reward_items:
-		var label := Label.new()
-		label.text = String(item.get("cardId", ""))
-		WhatajongUI.tint_body_text(label)
-		rewards_container.add_child(label)
+		var card_id := String(item.get("cardId", ""))
+
+		# 外层面板：带圆角和边框的奖励卡
+		var panel := Panel.new()
+		panel.mouse_filter = Control.MOUSE_FILTER_STOP
+		panel.tooltip_text = card_id
+		WhatajongUI.apply_panel(panel, WhatajongUI.COLOR_DOT, Color(1, 0.97, 0.88, 0.92), 16, 12)
+
+		# 阴影：让奖励牌有浮起感
+		var sb := panel.get_theme_stylebox("panel") as StyleBoxFlat
+		if sb:
+			sb.shadow_size = 4
+			sb.shadow_color = Color(0, 0, 0, 0.35)
+			sb.shadow_offset = Vector2(3, 3)
+
+		panel.custom_minimum_size = Vector2(100, 130)
+		panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+		# 牌面图：居中显示，保持宽高比
+		var tex := TextureRect.new()
+		var texture_path := "res://tiles/%s.webp" % card_id
+		if ResourceLoader.exists(texture_path):
+			tex.texture = load(texture_path)
+		else:
+			push_warning("run_reward: 找不到牌面图片 %s" % texture_path)
+
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex.anchor_left = 0.0
+		tex.anchor_top = 0.0
+		tex.anchor_right = 1.0
+		tex.anchor_bottom = 1.0
+		tex.offset_left = 10
+		tex.offset_top = 10
+		tex.offset_right = -10
+		tex.offset_bottom = -10
+		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+		panel.add_child(tex)
+		rewards_container.add_child(panel)
 
 
 func _get_current_level() -> Dictionary:

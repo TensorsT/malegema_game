@@ -600,23 +600,16 @@ func _update_score_label() -> void:
 	var objective := int(round.get("pointObjective", 0))
 	var timer_points := float(round.get("timerPoints", 0.0))
 	var penalty := float(game_state.get("time", 0.0)) * timer_points
-	var estimated_total := int(round(points - penalty))
-	var seed_text := _get_run_seed_text()
-	var base_text := "已有分数：%d / 过关分数：%d / 预计结算：%d" % [
+	var estimated_total := int(points - penalty)
+	score_label.text = "已有分数：%d / 过关分数：%d / 预计结算：%d" % [
 		points,
 		objective,
 		estimated_total,
 	]
-	if seed_text == "":
-		score_label.text = base_text
-		return
-	score_label.text = "%s\n种子：%s" % [base_text, seed_text]
 
 
-func _get_run_seed_text() -> String:
-	if not RunManager.has_active_run():
-		return ""
-	return String(RunManager.run.get("runId", ""))
+
+
 
 
 func _get_icon(card_id: String) -> Texture2D:
@@ -814,6 +807,9 @@ func _load_saved_board() -> void:
 	if save_data.is_empty():
 		_setup_new_round()
 		return
+
+	# 恢复 RunManager 的 run/deck/levels（修复继续游戏数据丢失的 Bug）
+	SaveManager.restore_run_manager(save_data)
 
 	# 清理旧牌
 	for child in tile_layer.get_children():
