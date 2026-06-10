@@ -62,14 +62,53 @@ func get_round() -> Dictionary:
 	var run_id := String(run.get("runId", ""))
 	var round_id := int(run.get("round", 1))
 	var max_points_map: Dictionary = run.get("roundMaxPoints", {}) as Dictionary
+
 	if run_id != "":
 		var key := "%s-%d" % [run_id, round_id]
-		if max_points_map.has(key):
-			var max_points := int(max_points_map.get(key, 0))
-			if max_points > 0:
-				var capped := int(floor(max_points * 0.85))
-				round["pointObjective"] = min(int(round.get("pointObjective", 0)), capped)
+		# 棋盘最大可得分（从 _remember_round_max_points 写入）
+		var table_max := int(max_points_map.get(key, 0))
+		# 牌组牌力估算（基于 deck 的基础分 + 材质加成）
+		var deck_power := _estimate_deck_power()
+
+		if table_max > 0:
+			# 动态目标分：棋盘最高分的 75%~90%，根据牌力微调
+			# 牌力越高 → 要求越高（乘数越大），但上限 90%
+			var power_factor := clampf(0.75 + deck_power * 0.002, 0.75, 0.90)
+			var dynamic_objective := int(ceil(table_max * power_factor))
+			# 取公式值和动态值的较小者，确保目标分永远可达成
+			round["pointObjective"] = mini(int(round.get("pointObjective", 0)), dynamic_objective)
+
 	return round
+
+
+## 估算牌组牌力：每张牌的基础分 + 材质加成之和
+func _estimate_deck_power() -> int:
+	if deck.is_empty():
+		return 0
+	var total := 0
+	for tile: Dictionary in deck:
+		var card_id := String(tile.get("cardId", ""))
+		var material := String(tile.get("material", "bone"))
+		var card := CardData.get_card_by_id(card_id)
+		var card_points := int(card.get("points", 0))
+		var material_points := _material_point_value(material)
+		total += card_points + material_points
+	return total
+
+
+## 材质分查表（与 GameLoop._get_material_points 保持一致）
+static func _material_point_value(material: String) -> int:
+	match material:
+		"topaz", "quartz", "garnet":
+			return 1
+		"jade":
+			return 2
+		"sapphire", "obsidian", "ruby":
+			return 24
+		"emerald":
+			return 48
+		_:
+			return 0
 
 
 func get_round_rng() -> RandomNumberGenerator:

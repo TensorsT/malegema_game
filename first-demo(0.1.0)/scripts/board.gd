@@ -33,6 +33,11 @@ const WIND_OVERSHOOT_PX := 18.0
 @onready var game_panel: Panel = $GamePanel
 @onready var title_label: Label = $GamePanel/VBoxContainer/TitleLabel
 @onready var score_label: Label = $GamePanel/VBoxContainer/ScoreLabel
+@onready var score_bar: ProgressBar = $GamePanel/VBoxContainer/ScoreBarRow/ScoreBar
+@onready var score_bar_label: Label = $GamePanel/VBoxContainer/ScoreBarRow/ScoreBarLabel
+@onready var combo_label: Label = $GamePanel/VBoxContainer/ComboLabel
+@onready var timer_bar: ProgressBar = $GamePanel/VBoxContainer/TimerBarRow/TimerBar
+@onready var timer_bar_label: Label = $GamePanel/VBoxContainer/TimerBarRow/TimerBarLabel
 @onready var status_label: Label = $GamePanel/VBoxContainer/StatusLabel
 @onready var board_shadow: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardShadow
 @onready var board_surface: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardSurface
@@ -92,6 +97,9 @@ func _process(delta: float) -> void:
 		return
 	game_state["time"] = float(game_state.get("time", 0.0)) + delta
 	_update_score_label()
+	_update_score_bar()
+	_update_combo_label()
+	_update_timer_bar()
 
 
 func _setup_new_round() -> void:
@@ -160,6 +168,9 @@ func _setup_new_round() -> void:
 
 	_refresh_tiles_state()
 	_update_score_label()
+	_update_score_bar()
+	_update_combo_label()
+	_update_timer_bar()
 	status_label.text = "请选择两张可点击的相同牌。"
 
 
@@ -175,11 +186,134 @@ func _apply_whatajong_ui() -> void:
 	WhatajongUI.tint_label(title_label, WhatajongUI.COLOR_DOT.darkened(0.38))
 	WhatajongUI.tint_body_text(score_label, WhatajongUI.COLOR_TEXT, WhatajongUI.FONT_SIZE_BODY)
 	WhatajongUI.tint_body_text(status_label, WhatajongUI.COLOR_TEXT_SOFT, WhatajongUI.FONT_SIZE_SMALL)
+	_style_bar_labels()
+	_style_score_bar()
+	_style_combo_label()
+	_style_timer_bar()
 
 	board_shadow.color = Color(0.03, 0.04, 0.05, 0.24)
 	board_surface.color = Color(0.20, 0.40, 0.34, 0.94)
 	board_inset.color = Color(0.28, 0.50, 0.42, 0.50)
 	board_glow.color = Color(0.84, 0.96, 0.86, 0.14)
+
+
+
+
+func _style_bar_labels() -> void:
+	var label_color := Color(0.88, 0.82, 0.68, 0.95)
+	for lbl: Label in [score_bar_label, timer_bar_label]:
+		lbl.add_theme_color_override("font_color", label_color)
+		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+
+func _style_score_bar() -> void:
+	score_bar.tooltip_text = "分数进度：已有分 / 过关分数"
+	# 背景：深色圆角条
+	var bg_style := StyleBoxFlat.new()
+	bg_style.bg_color = Color(0.12, 0.14, 0.16, 0.45)
+	bg_style.corner_radius_top_left = 7
+	bg_style.corner_radius_top_right = 7
+	bg_style.corner_radius_bottom_right = 7
+	bg_style.corner_radius_bottom_left = 7
+	bg_style.content_margin_top = 1
+	bg_style.content_margin_bottom = 1
+	bg_style.content_margin_left = 3
+	bg_style.content_margin_right = 3
+	score_bar.add_theme_stylebox_override("background", bg_style)
+
+	# 填充：温暖琥珀色（进度条代表得分进度）
+	var fill_style := StyleBoxFlat.new()
+	fill_style.bg_color = Color(0.78, 0.58, 0.22, 0.88)
+	fill_style.corner_radius_top_left = 6
+	fill_style.corner_radius_top_right = 6
+	fill_style.corner_radius_bottom_right = 6
+	fill_style.corner_radius_bottom_left = 6
+	fill_style.content_margin_top = 1
+	fill_style.content_margin_bottom = 1
+	fill_style.content_margin_left = 2
+	fill_style.content_margin_right = 2
+	score_bar.add_theme_stylebox_override("fill", fill_style)
+
+
+func _style_combo_label() -> void:
+	combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	combo_label.add_theme_color_override("font_color", Color(0.90, 0.65, 0.15))
+	combo_label.add_theme_font_size_override("font_size", 20)
+	combo_label.visible = false
+
+
+func _style_timer_bar() -> void:
+	timer_bar.tooltip_text = "时间压力：预计结算分 / 过关分数"
+	# 背景：深色圆角条
+	var bg_style := StyleBoxFlat.new()
+	bg_style.bg_color = Color(0.12, 0.14, 0.16, 0.55)
+	bg_style.corner_radius_top_left = 7
+	bg_style.corner_radius_top_right = 7
+	bg_style.corner_radius_bottom_right = 7
+	bg_style.corner_radius_bottom_left = 7
+	bg_style.content_margin_top = 1
+	bg_style.content_margin_bottom = 1
+	bg_style.content_margin_left = 3
+	bg_style.content_margin_right = 3
+	timer_bar.add_theme_stylebox_override("background", bg_style)
+
+	# 填充：金色渐变（初始，运行时会在 _update_timer_bar 中根据比例变色）
+	var fill_style := StyleBoxFlat.new()
+	fill_style.bg_color = Color(0.85, 0.72, 0.28, 0.92)
+	fill_style.corner_radius_top_left = 6
+	fill_style.corner_radius_top_right = 6
+	fill_style.corner_radius_bottom_right = 6
+	fill_style.corner_radius_bottom_left = 6
+	fill_style.content_margin_top = 1
+	fill_style.content_margin_bottom = 1
+	fill_style.content_margin_left = 2
+	fill_style.content_margin_right = 2
+	timer_bar.add_theme_stylebox_override("fill", fill_style)
+
+
+func _update_timer_bar() -> void:
+	if not RunManager.has_active_run():
+		timer_bar.visible = false
+		return
+
+	timer_bar.visible = true
+	var round := RunManager.get_round()
+	var objective := int(round.get("pointObjective", 0))
+	var points := int(game_state.get("points", 0))
+	var timer_points := float(round.get("timerPoints", 0.0))
+
+	# 计算时间进度比例：基于"预计结算分"相对目标分
+	# ratio = (estimated_total / objective)，1.0 = 刚好达标，>1.0 充裕，<1.0 紧张
+	if objective <= 0 or timer_points <= 0:
+		timer_bar.value = 100.0
+		return
+
+	var elapsed: float = float(game_state.get("time", 0.0))
+	var penalty := elapsed * timer_points
+	var estimated_total := float(points - penalty)
+	var ratio := clampf(estimated_total / float(objective), 0.0, 2.0)
+
+	# 将 ratio 映射到 0-100 进度条值（1.0 → 50%，2.0 → 100%）
+	var bar_value := ratio * 50.0
+	timer_bar.value = clampf(bar_value, 0.0, 100.0)
+
+	# 根据比例变色：绿 → 黄 → 红
+	var fill := timer_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if fill:
+		if ratio >= 1.2:
+			# 充裕：翡翠绿
+			fill.bg_color = Color(0.30, 0.68, 0.42, 0.92)
+		elif ratio >= 0.8:
+			# 稳健：金色
+			fill.bg_color = Color(0.85, 0.72, 0.28, 0.92)
+		elif ratio >= 0.5:
+			# 紧张：橙色
+			fill.bg_color = Color(0.90, 0.50, 0.18, 0.92)
+		else:
+			# 危险：红色闪烁
+			var pulse := 0.7 + 0.3 * sin(elapsed * 4.0)
+			fill.bg_color = Color(0.88 * pulse, 0.18, 0.12, 0.92)
 
 
 func _on_tile_pressed(tile_id: String) -> void:
@@ -212,6 +346,8 @@ func _on_tile_pressed(tile_id: String) -> void:
 	_play_result_feedback(result, first_tile, tile_id)
 	_status_from_result(result)
 	_update_score_label()
+	_update_score_bar()
+	_update_combo_label()
 	if String(game_state.get("end_condition", "")) != "":
 		_handle_round_end()
 
@@ -608,6 +744,75 @@ func _update_score_label() -> void:
 	]
 
 
+func _update_score_bar() -> void:
+	if not RunManager.has_active_run():
+		score_bar.visible = false
+		return
+
+	score_bar.visible = true
+	var points := int(game_state.get("points", 0))
+	var round := RunManager.get_round()
+	var objective := int(round.get("pointObjective", 0))
+
+	if objective <= 0:
+		score_bar.value = 100.0
+		return
+
+	var ratio := clampf(float(points) / float(objective), 0.0, 1.5)
+	score_bar.value = ratio * 100.0
+
+	# 根据进度变色：红 → 橙 → 琥珀 → 翡翠
+	var fill := score_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if fill:
+		if ratio >= 1.0:
+			# 达标：翡翠绿
+			fill.bg_color = Color(0.30, 0.68, 0.42, 0.90)
+		elif ratio >= 0.6:
+			# 进展良好：琥珀金
+			fill.bg_color = Color(0.78, 0.58, 0.22, 0.88)
+		elif ratio >= 0.3:
+			# 偏低：暖橙
+			fill.bg_color = Color(0.85, 0.48, 0.18, 0.88)
+		else:
+			# 危险：暗红
+			fill.bg_color = Color(0.75, 0.22, 0.15, 0.88)
+
+
+func _update_combo_label() -> void:
+	var dragon_run: Dictionary = game_state.get("dragon_run", {}) as Dictionary
+	var phoenix_run: Dictionary = game_state.get("phoenix_run", {}) as Dictionary
+	var dragon_combo := int(dragon_run.get("combo", 0))
+	var phoenix_combo := int(phoenix_run.get("combo", 0))
+
+	if dragon_combo <= 0 and phoenix_combo <= 0:
+		combo_label.visible = false
+		return
+
+	combo_label.visible = true
+	var parts: Array[String] = []
+	if dragon_combo > 0:
+		var color_name := String(dragon_run.get("color", ""))
+		parts.append("龙×%d" % dragon_combo)
+	if phoenix_combo > 0:
+		parts.append("凤×%d" % phoenix_combo)
+
+	var multiplier := maxi(1, dragon_combo + phoenix_combo * 2)
+	combo_label.text = "🔥 %s  倍率 ×%d" % ["  ".join(parts), multiplier]
+
+	# 高倍率时变色提示
+	if multiplier >= 5:
+		combo_label.add_theme_color_override("font_color", Color(1.0, 0.30, 0.20))
+	elif multiplier >= 3:
+		combo_label.add_theme_color_override("font_color", Color(0.95, 0.55, 0.12))
+	else:
+		combo_label.add_theme_color_override("font_color", Color(0.90, 0.65, 0.15))
+
+
+
+
+
+
+
 
 
 
@@ -865,6 +1070,9 @@ func _load_saved_board() -> void:
 
 	_refresh_tiles_state()
 	_update_score_label()
+	_update_score_bar()
+	_update_combo_label()
+	_update_timer_bar()
 
 	if RunManager.has_active_run():
 		var round := RunManager.get_round()
