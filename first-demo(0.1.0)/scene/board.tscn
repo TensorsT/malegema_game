@@ -51,49 +51,62 @@ theme_override_font_sizes/font_size = 28
 text = "已有分数：0 / 过关分数：0"
 horizontal_alignment = 1
 
-[node name="ScoreBarRow" type="HBoxContainer" parent="GamePanel/VBoxContainer" unique_id=991100773]
+[node name="ScoreBarMargin" type="MarginContainer" parent="GamePanel/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_right = 32
 
-[node name="ScoreBarLabel" type="Label" parent="GamePanel/VBoxContainer/ScoreBarRow"]
+[node name="ScoreBarRow" type="HBoxContainer" parent="GamePanel/VBoxContainer/ScoreBarMargin" unique_id=991100773]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "分数"
+theme_override_constants/separation = 12
+
+[node name="ScoreBarLabel" type="Label" parent="GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "进度"
 vertical_alignment = 1
-custom_minimum_size = Vector2(48, 0)
+custom_minimum_size = Vector2(62, 0)
 
-[node name="ScoreBar" type="ProgressBar" parent="GamePanel/VBoxContainer/ScoreBarRow"]
+[node name="BarStack" type="Control" parent="GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 18)
+custom_minimum_size = Vector2(0, 20)
+
+[node name="ScoreGhostBar" type="ProgressBar" parent="GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow/BarStack"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 max_value = 100.0
 value = 0.0
 show_percentage = false
+
+[node name="ScoreBar" type="ProgressBar" parent="GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow/BarStack"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
+[node name="TimeInfoLabel" type="Label" parent="GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = ""
+vertical_alignment = 1
+horizontal_alignment = 2
+custom_minimum_size = Vector2(180, 0)
 
 [node name="ComboLabel" type="Label" parent="GamePanel/VBoxContainer" unique_id=882200991]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = ""
 horizontal_alignment = 1
-
-[node name="TimerBarRow" type="HBoxContainer" parent="GamePanel/VBoxContainer" unique_id=823450012]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="TimerBarLabel" type="Label" parent="GamePanel/VBoxContainer/TimerBarRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "时间"
-vertical_alignment = 1
-custom_minimum_size = Vector2(48, 0)
-
-[node name="TimerBar" type="ProgressBar" parent="GamePanel/VBoxContainer/TimerBarRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 18)
-max_value = 100.0
-value = 100.0
-show_percentage = false
 
 [node name="StatusLabel" type="Label" parent="GamePanel/VBoxContainer" unique_id=1398690485]
 layout_mode = 2

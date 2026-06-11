@@ -33,11 +33,12 @@ const WIND_OVERSHOOT_PX := 18.0
 @onready var game_panel: Panel = $GamePanel
 @onready var title_label: Label = $GamePanel/VBoxContainer/TitleLabel
 @onready var score_label: Label = $GamePanel/VBoxContainer/ScoreLabel
-@onready var score_bar: ProgressBar = get_node_or_null("GamePanel/VBoxContainer/ScoreBarRow/ScoreBar") as ProgressBar
-@onready var score_bar_label: Label = get_node_or_null("GamePanel/VBoxContainer/ScoreBarRow/ScoreBarLabel") as Label
+@onready var score_bar: ProgressBar = get_node_or_null("GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow/BarStack/ScoreBar") as ProgressBar
+@onready var score_ghost_bar: ProgressBar = get_node_or_null("GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow/BarStack/ScoreGhostBar") as ProgressBar
+@onready var bar_stack: Control = get_node_or_null("GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow/BarStack") as Control
+@onready var score_bar_label: Label = get_node_or_null("GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow/ScoreBarLabel") as Label
+@onready var time_info_label: Label = get_node_or_null("GamePanel/VBoxContainer/ScoreBarMargin/ScoreBarRow/TimeInfoLabel") as Label
 @onready var combo_label: Label = get_node_or_null("GamePanel/VBoxContainer/ComboLabel") as Label
-@onready var timer_bar: ProgressBar = get_node_or_null("GamePanel/VBoxContainer/TimerBarRow/TimerBar") as ProgressBar
-@onready var timer_bar_label: Label = get_node_or_null("GamePanel/VBoxContainer/TimerBarRow/TimerBarLabel") as Label
 @onready var status_label: Label = $GamePanel/VBoxContainer/StatusLabel
 @onready var board_shadow: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardShadow
 @onready var board_surface: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardSurface
@@ -61,6 +62,8 @@ var _round_end_pending := false
 var _ambient_particles: CPUParticles2D
 var _inventory_popup: InventoryPopup
 var _active_card_ids: Array[String] = []
+# 上次已提示过的整数扣分值；-1 表示尚未同步（开局/读档后第一帧只同步不弹字）
+var _last_penalty_int := -1
 
 var game_state := {
 	"points": 0,
@@ -99,7 +102,6 @@ func _process(delta: float) -> void:
 	_update_score_label()
 	_update_score_bar()
 	_update_combo_label()
-	_update_timer_bar()
 
 
 func _setup_new_round() -> void:
@@ -108,6 +110,7 @@ func _setup_new_round() -> void:
 	tile_nodes.clear()
 	_active_card_ids.clear()
 	_round_end_pending = false
+	_last_penalty_int = -1
 	game_state = {
 		"points": 0,
 		"coins": 0,
@@ -170,7 +173,6 @@ func _setup_new_round() -> void:
 	_update_score_label()
 	_update_score_bar()
 	_update_combo_label()
-	_update_timer_bar()
 	status_label.text = "请选择两张可点击的相同牌。"
 
 
@@ -189,7 +191,6 @@ func _apply_whatajong_ui() -> void:
 	_style_bar_labels()
 	_style_score_bar()
 	_style_combo_label()
-	_style_timer_bar()
 
 	board_shadow.color = Color(0.03, 0.04, 0.05, 0.24)
 	board_surface.color = Color(0.20, 0.40, 0.34, 0.94)
@@ -200,44 +201,58 @@ func _apply_whatajong_ui() -> void:
 
 
 func _style_bar_labels() -> void:
-	var label_color := Color(0.88, 0.82, 0.68, 0.95)
-	for lbl: Label in [score_bar_label, timer_bar_label]:
+	var label_color := Color(0.55, 0.47, 0.34, 1.0)
+	for lbl: Label in [score_bar_label, time_info_label]:
 		if lbl == null:
 			continue
 		lbl.add_theme_color_override("font_color", label_color)
-		lbl.add_theme_font_size_override("font_size", 16)
+		lbl.add_theme_font_size_override("font_size", 22)
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 
 func _style_score_bar() -> void:
 	if score_bar == null:
 		return
-	score_bar.tooltip_text = "分数进度：已有分 / 过关分数"
-	# 背景：深色圆角条
-	var bg_style := StyleBoxFlat.new()
-	bg_style.bg_color = Color(0.12, 0.14, 0.16, 0.45)
-	bg_style.corner_radius_top_left = 7
-	bg_style.corner_radius_top_right = 7
-	bg_style.corner_radius_bottom_right = 7
-	bg_style.corner_radius_bottom_left = 7
-	bg_style.content_margin_top = 1
-	bg_style.content_margin_bottom = 1
-	bg_style.content_margin_left = 3
-	bg_style.content_margin_right = 3
-	score_bar.add_theme_stylebox_override("background", bg_style)
+	if bar_stack != null:
+		bar_stack.tooltip_text = "结算进度：琥珀色 = 预计结算分，红色尾巴 = 已被时间吃掉的分数"
+	# 让悬停事件穿透到 BarStack，保证 tooltip 正常显示
+	score_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if score_ghost_bar != null:
+		score_ghost_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# 填充：温暖琥珀色（进度条代表得分进度）
+	# 底层（幽灵条）：背景为深色槽，填充为暗红色 = 原始得分（含被扣部分）
+	if score_ghost_bar != null:
+		var bg_style := StyleBoxFlat.new()
+		bg_style.bg_color = Color(0.12, 0.14, 0.16, 0.45)
+		_round_style(bg_style, 7)
+		score_ghost_bar.add_theme_stylebox_override("background", bg_style)
+
+		var ghost_fill := StyleBoxFlat.new()
+		ghost_fill.bg_color = Color(0.72, 0.26, 0.20, 0.60)
+		_round_style(ghost_fill, 6)
+		score_ghost_bar.add_theme_stylebox_override("fill", ghost_fill)
+
+	# 顶层（主条）：背景透明，填充琥珀色 = 预计结算分
+	var transparent_bg := StyleBoxFlat.new()
+	transparent_bg.bg_color = Color(0, 0, 0, 0)
+	_round_style(transparent_bg, 7)
+	score_bar.add_theme_stylebox_override("background", transparent_bg)
+
 	var fill_style := StyleBoxFlat.new()
-	fill_style.bg_color = Color(0.78, 0.58, 0.22, 0.88)
-	fill_style.corner_radius_top_left = 6
-	fill_style.corner_radius_top_right = 6
-	fill_style.corner_radius_bottom_right = 6
-	fill_style.corner_radius_bottom_left = 6
-	fill_style.content_margin_top = 1
-	fill_style.content_margin_bottom = 1
-	fill_style.content_margin_left = 2
-	fill_style.content_margin_right = 2
+	fill_style.bg_color = Color(0.78, 0.58, 0.22, 0.92)
+	_round_style(fill_style, 6)
 	score_bar.add_theme_stylebox_override("fill", fill_style)
+
+
+static func _round_style(style: StyleBoxFlat, radius: int) -> void:
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_right = radius
+	style.corner_radius_bottom_left = radius
+	style.content_margin_top = 1
+	style.content_margin_bottom = 1
+	style.content_margin_left = 2
+	style.content_margin_right = 2
 
 
 func _style_combo_label() -> void:
@@ -249,81 +264,72 @@ func _style_combo_label() -> void:
 	combo_label.visible = false
 
 
-func _style_timer_bar() -> void:
-	if timer_bar == null:
+func _update_time_info(elapsed: float, penalty: float, ratio: float) -> void:
+	if time_info_label == null:
 		return
-	timer_bar.tooltip_text = "时间压力：预计结算分 / 过关分数"
-	# 背景：深色圆角条
-	var bg_style := StyleBoxFlat.new()
-	bg_style.bg_color = Color(0.12, 0.14, 0.16, 0.55)
-	bg_style.corner_radius_top_left = 7
-	bg_style.corner_radius_top_right = 7
-	bg_style.corner_radius_bottom_right = 7
-	bg_style.corner_radius_bottom_left = 7
-	bg_style.content_margin_top = 1
-	bg_style.content_margin_bottom = 1
-	bg_style.content_margin_left = 3
-	bg_style.content_margin_right = 3
-	timer_bar.add_theme_stylebox_override("background", bg_style)
+	time_info_label.visible = true
+	var minutes := floori(elapsed / 60.0)
+	var seconds := int(elapsed) % 60
+	if penalty > 0.05:
+		time_info_label.text = "%d:%02d ・ -%.1f" % [minutes, seconds, penalty]
+	else:
+		time_info_label.text = "%d:%02d" % [minutes, seconds]
 
-	# 填充：金色渐变（初始，运行时会在 _update_timer_bar 中根据比例变色）
-	var fill_style := StyleBoxFlat.new()
-	fill_style.bg_color = Color(0.85, 0.72, 0.28, 0.92)
-	fill_style.corner_radius_top_left = 6
-	fill_style.corner_radius_top_right = 6
-	fill_style.corner_radius_bottom_right = 6
-	fill_style.corner_radius_bottom_left = 6
-	fill_style.content_margin_top = 1
-	fill_style.content_margin_bottom = 1
-	fill_style.content_margin_left = 2
-	fill_style.content_margin_right = 2
-	timer_bar.add_theme_stylebox_override("fill", fill_style)
+	# 颜色跟随时间压力：常态暖棕（与界面统一），紧张橙色，危险深红
+	if ratio < 0.5:
+		time_info_label.add_theme_color_override("font_color", Color(0.78, 0.24, 0.18, 1.0))
+	elif ratio < 0.8:
+		time_info_label.add_theme_color_override("font_color", Color(0.80, 0.48, 0.16, 1.0))
+	else:
+		time_info_label.add_theme_color_override("font_color", Color(0.55, 0.47, 0.34, 1.0))
 
 
-func _update_timer_bar() -> void:
-	if timer_bar == null:
+func _check_penalty_milestone(penalty: float) -> void:
+	# 每累计扣满 1 分触发一次"分数被吃掉"的提示动画
+	var penalty_int := int(floor(penalty))
+	if _last_penalty_int < 0:
+		# 开局 / 读档后第一帧：只同步基准，不播动画
+		_last_penalty_int = penalty_int
 		return
-	if not RunManager.has_active_run():
-		timer_bar.visible = false
+	if penalty_int <= _last_penalty_int:
 		return
+	_last_penalty_int = penalty_int
+	_play_penalty_tick()
 
-	timer_bar.visible = true
-	var round_data := RunManager.get_round()
-	var objective := int(round_data.get("pointObjective", 0))
-	var points := int(game_state.get("points", 0))
-	var timer_points := float(round_data.get("timerPoints", 0.0))
 
-	# 计算时间进度比例：基于"预计结算分"相对目标分
-	# ratio = (estimated_total / objective)，1.0 = 刚好达标，>1.0 充裕，<1.0 紧张
-	if objective <= 0 or timer_points <= 0:
-		timer_bar.value = 100.0
+func _play_penalty_tick() -> void:
+	# 1) 时间数字轻微放大脉冲，提示扣分发生
+	if time_info_label != null:
+		time_info_label.pivot_offset = Vector2(time_info_label.size.x, time_info_label.size.y * 0.5)
+		var pulse := create_tween()
+		pulse.tween_property(time_info_label, "scale", Vector2(1.18, 1.18), 0.1).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		pulse.tween_property(time_info_label, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	# 2) 从进度条填充边缘滴落一颗红色小水珠，表现"分数被时间吸走"
+	if bar_stack == null or score_bar == null:
 		return
+	var drop := Panel.new()
+	drop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	drop.size = Vector2(7, 7)
+	drop.pivot_offset = drop.size * 0.5
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.80, 0.28, 0.20, 0.9)
+	style.corner_radius_top_left = 99
+	style.corner_radius_top_right = 99
+	style.corner_radius_bottom_right = 99
+	style.corner_radius_bottom_left = 99
+	drop.add_theme_stylebox_override("panel", style)
+	bar_stack.add_child(drop)
 
-	var elapsed: float = float(game_state.get("time", 0.0))
-	var penalty := elapsed * timer_points
-	var estimated_total := float(points - penalty)
-	var ratio := clampf(estimated_total / float(objective), 0.0, 2.0)
+	# 位置：主条（预计结算分）的填充边缘
+	var fill_fraction := clampf(score_bar.value / 100.0, 0.0, 1.0)
+	drop.position = Vector2(bar_stack.size.x * fill_fraction - 3.0, bar_stack.size.y - 4.0)
 
-	# 将 ratio 映射到 0-100 进度条值（1.0 → 50%，2.0 → 100%）
-	var bar_value := ratio * 50.0
-	timer_bar.value = clampf(bar_value, 0.0, 100.0)
-
-	# 根据比例变色：绿 → 黄 → 红
-	var fill := timer_bar.get_theme_stylebox("fill") as StyleBoxFlat
-	if fill:
-		if ratio >= 1.2:
-			# 充裕：翡翠绿
-			fill.bg_color = Color(0.30, 0.68, 0.42, 0.92)
-		elif ratio >= 0.8:
-			# 稳健：金色
-			fill.bg_color = Color(0.85, 0.72, 0.28, 0.92)
-		elif ratio >= 0.5:
-			# 紧张：橙色
-			fill.bg_color = Color(0.90, 0.50, 0.18, 0.92)
-		else:
-			# 危险：红色闪烁
-			var pulse := 0.7 + 0.3 * sin(elapsed * 4.0)
-			fill.bg_color = Color(0.88 * pulse, 0.18, 0.12, 0.92)
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(drop, "position:y", drop.position.y + 20.0, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(drop, "scale", Vector2(0.4, 0.4), 0.55).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(drop, "modulate:a", 0.0, 0.3).set_delay(0.25)
+	tween.finished.connect(drop.queue_free)
 
 
 func _on_tile_pressed(tile_id: String) -> void:
@@ -732,6 +738,15 @@ func _apply_round_header() -> void:
 		return
 	var round_id := int(RunManager.run.get("round", 1))
 	title_label.text = "第 %d 回合" % round_id
+	# 提示本回合的实际扣分速率
+	if bar_stack != null:
+		var round_data := RunManager.get_round()
+		var timer_points := float(round_data.get("timerPoints", 0.0))
+		if timer_points > 0.0:
+			bar_stack.tooltip_text = "琥珀色 = 预计结算分，红色尾巴 = 时间扣分\n本回合每秒扣 %.3f 分（约每 %d 秒扣 1 分）" % [
+				timer_points,
+				int(round(1.0 / maxf(timer_points, 0.001))),
+			]
 	_update_score_label()
 
 
@@ -746,11 +761,15 @@ func _update_score_label() -> void:
 	var timer_points := float(round_data.get("timerPoints", 0.0))
 	var penalty := float(game_state.get("time", 0.0)) * timer_points
 	var estimated_total := int(points - penalty)
-	score_label.text = "已有分数：%d / 过关分数：%d / 预计结算：%d" % [
-		points,
-		objective,
-		estimated_total,
-	]
+	if penalty > 0.05:
+		score_label.text = "结算分 %d / %d　（已得 %d ・ 时间扣分 -%.1f）" % [
+			estimated_total,
+			objective,
+			points,
+			penalty,
+		]
+	else:
+		score_label.text = "结算分 %d / %d" % [points, objective]
 
 
 func _update_score_bar() -> void:
@@ -758,21 +777,39 @@ func _update_score_bar() -> void:
 		return
 	if not RunManager.has_active_run():
 		score_bar.visible = false
+		if score_ghost_bar != null:
+			score_ghost_bar.visible = false
+		if time_info_label != null:
+			time_info_label.visible = false
 		return
 
 	score_bar.visible = true
 	var points := int(game_state.get("points", 0))
 	var round_data := RunManager.get_round()
 	var objective := int(round_data.get("pointObjective", 0))
+	var timer_points := float(round_data.get("timerPoints", 0.0))
+	var elapsed: float = float(game_state.get("time", 0.0))
+	var penalty := maxf(elapsed * timer_points, 0.0)
+	var estimated_total := float(points) - penalty
 
 	if objective <= 0:
 		score_bar.value = 100.0
+		_update_time_info(elapsed, penalty, 2.0)
 		return
 
-	var ratio := clampf(float(points) / float(objective), 0.0, 1.5)
-	score_bar.value = ratio * 100.0
+	var ratio := clampf(estimated_total / float(objective), 0.0, 1.0)
+	var raw_ratio := clampf(float(points) / float(objective), 0.0, 1.0)
 
-	# 根据进度变色：红 → 橙 → 琥珀 → 翡翠
+	# 前层 = 预计结算分；后层 = 原始得分，两者之差显示为红色尾巴（被时间吃掉的分数）
+	score_bar.value = ratio * 100.0
+	if score_ghost_bar != null:
+		score_ghost_bar.visible = true
+		score_ghost_bar.value = raw_ratio * 100.0
+
+	_update_time_info(elapsed, penalty, estimated_total / float(objective))
+	_check_penalty_milestone(penalty)
+
+	# 根据预计结算进度变色：红 → 橙 → 琥珀 → 翡翠
 	var fill := score_bar.get_theme_stylebox("fill") as StyleBoxFlat
 	if fill:
 		if ratio >= 1.0:
@@ -780,13 +817,13 @@ func _update_score_bar() -> void:
 			fill.bg_color = Color(0.30, 0.68, 0.42, 0.90)
 		elif ratio >= 0.6:
 			# 进展良好：琥珀金
-			fill.bg_color = Color(0.78, 0.58, 0.22, 0.88)
+			fill.bg_color = Color(0.78, 0.58, 0.22, 0.92)
 		elif ratio >= 0.3:
 			# 偏低：暖橙
-			fill.bg_color = Color(0.85, 0.48, 0.18, 0.88)
+			fill.bg_color = Color(0.85, 0.48, 0.18, 0.92)
 		else:
 			# 危险：暗红
-			fill.bg_color = Color(0.75, 0.22, 0.15, 0.88)
+			fill.bg_color = Color(0.75, 0.22, 0.15, 0.92)
 
 
 func _update_combo_label() -> void:
@@ -1085,7 +1122,6 @@ func _load_saved_board() -> void:
 	_update_score_label()
 	_update_score_bar()
 	_update_combo_label()
-	_update_timer_bar()
 
 	if RunManager.has_active_run():
 		var round_id := int(RunManager.run.get("round", 1))

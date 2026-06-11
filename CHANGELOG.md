@@ -3,6 +3,18 @@
 项目后续统一按纯 Godot 主线记录。当前主工程保持目录名 `first-demo(0.1.0)/` 不变；`first-demo/` 只作为早期基础 demo 参考；`malegema/` 为历史 Python 实验实现，不再作为主要推进线。
 
 
+## [0.1.9a] 2026-06-11
+
+### Changed
+
+- Reworked the settlement screen animations in `first-demo(0.1.0)/scripts/run_end.gd` to be more pronounced: stronger panel entrance (0.82 scale with back-ease overshoot, 64px slide), stamp-style title pop-in, per-line bounce-in summary text with a gold-highlighted coin total line, bigger two-wave coin burst, falling confetti on win, and on failure a red rubber-stamp "LOSE" badge that slams over the title followed by an impact-timed panel shake. Also raised the board bar-row label and clock font size from 18 to 22 for readability.
+- Visualized the time-penalty mechanic by merging the score and timer bars in `first-demo(0.1.0)/` (board scene + script) into a single layered settlement-progress bar: the amber fill shows the projected settlement score, a dark-red trailing segment shows points already eaten by time, a live clock with pressure-based coloring sits at the bar's right end, a small red droplet drips from the fill edge whenever a whole point is lost, and the bar tooltip states the per-second penalty rate of the current round.
+
+### Validation
+
+- Static review completed for the edited GDScript files.
+- Godot CLI headless validation was skipped because `godot` is not available in the current PATH.
+
 ## [0.1.9] 2026-06-11
 
 ### Changed

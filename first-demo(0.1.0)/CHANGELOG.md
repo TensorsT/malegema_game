@@ -2,6 +2,30 @@
 
 项目后续统一按纯 Godot 主线记录。当前主工程保持目录名 `first-demo(0.1.0)/` 不变；`first-demo/` 只作为早期基础 demo 参考；`malegema/` 为历史 Python 实验实现，不再作为主要推进线。
 
+## [0.1.9a] 2026-06-11
+
+### Changed
+
+- Reworked the settlement screen (`scripts/run_end.gd`) animations to be more pronounced and polished:
+  - Panel entrance now scales from 0.82 with a back-ease overshoot and slides up 64px (was 0.96 scale / 22px slide).
+  - Title pops in stamp-style from 1.45x scale instead of a plain fade.
+  - Summary lines are now individual labels that bounce in one by one (fade + back-ease scale), with the total-coins line highlighted in gold at subtitle size.
+  - Win celebration upgraded: title punch + panel pulse, two waves of larger/farther coin bursts (26 coins + 16 sparks, up to 300px), and 28 pieces of colored confetti raining down the panel.
+  - Failure now slams a red rubber-stamp style "LOSE" badge over the title (2.6x scale drop-in with back-ease, tilt settle, and landing bounce), followed by a decaying horizontal panel shake timed to the stamp impact.
+- Visualized the time-penalty mechanic on the game board (`scene/board.tscn` + `scripts/board.gd`), merging the previous separate score and timer bars into one layered settlement-progress bar:
+  - Front amber fill = projected settlement score (score minus time penalty), so the bar visibly drains over time and jumps on each match; back dark-red fill = raw score, leaving a red trailing segment that shows exactly how many points time has eaten.
+  - A live clock ("m:ss ・ -x.x") sits at the right end of the bar row, colored warm-brown/orange/red as time pressure rises, with a subtle scale pulse each time a whole point is lost.
+  - Replaced the floating red text popup with a small red droplet that drips from the bar's fill edge when a penalty point accumulates.
+  - Simplified the score header line to "结算分 X / Y（已得 Z ・ 时间扣分 -P）" and removed the redundant timer bar row, fixing the bar misalignment.
+  - Wrapped the bar row in a MarginContainer (32px side margins) so the "进度" and clock labels no longer clip against the panel edges.
+  - Raised the bar-row label and clock font size from 18 to 22 (with wider label minimums) for readability.
+  - The bar tooltip explains the two-layer encoding and states the actual per-second penalty rate of the round; the penalty milestone counter resets per round and syncs silently after loading a save.
+
+### Validation
+
+- Static review completed for the edited GDScript files.
+- Godot CLI headless validation was skipped because `godot` is not available in the current PATH.
+
 ## [0.1.9] 2026-06-11
 
 ### Changed
