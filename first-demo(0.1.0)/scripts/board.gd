@@ -19,8 +19,8 @@ const AMBIENT_PARTICLES := preload("res://scene/AmbientParticles.tscn")
 
 const STEP_X := 40
 const STEP_Y := 54
-const Z_OFFSET_X := 6
-const Z_OFFSET_Y := 12
+const Z_OFFSET_X := 10
+const Z_OFFSET_Y := 16
 const TILE_DRAW_SIZE := Vector2(82, 120)
 const BOARD_PADDING := Vector2(54, 42)
 const MAX_LAYOUT_SCALE := 1.65
@@ -64,6 +64,8 @@ var _inventory_popup: InventoryPopup
 var _active_card_ids: Array[String] = []
 # 上次已提示过的整数扣分值；-1 表示尚未同步（开局/读档后第一帧只同步不弹字）
 var _last_penalty_int := -1
+# 当前存活牌的最高层 z，由 _refresh_tiles_state 维护
+var _current_top_layer := 0
 
 var game_state := {
 	"points": 0,
@@ -422,6 +424,8 @@ func _apply_tile_visual(tile_id: String, motion_map: Dictionary = {}) -> void:
 	var free := TileRules.is_free(tile_db, tile)
 	tile_node.set_clickable(free)
 	tile_node.set_selected(bool(tile["selected"]))
+	var z := int(tile.get("z", 0))
+	tile_node.set_elevation(z, maxi(0, _current_top_layer - z))
 	var target_position := _to_screen_position(tile)
 	if motion_map.has(tile_id):
 		var motion: Dictionary = motion_map[tile_id]
@@ -434,8 +438,20 @@ func _apply_tile_visual(tile_id: String, motion_map: Dictionary = {}) -> void:
 
 
 func _refresh_tiles_state(motion_map: Dictionary = {}) -> void:
+	_current_top_layer = _get_top_layer()
 	for tile_id in tile_nodes.keys():
 		_apply_tile_visual(String(tile_id), motion_map)
+
+
+## 当前仍存活牌中的最高层 z（用于按层深做明暗区分）
+func _get_top_layer() -> int:
+	var top := 0
+	for tile_value in tile_db.values():
+		var tile: Dictionary = tile_value
+		if bool(tile.get("deleted", false)):
+			continue
+		top = maxi(top, int(tile.get("z", 0)))
+	return top
 
 
 func _get_live_tile_node(tile_id: String) -> Tile:

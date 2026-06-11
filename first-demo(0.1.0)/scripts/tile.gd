@@ -32,6 +32,8 @@ var is_pressing: bool = false            # 鼠标是否正在按下
 var is_highlighted: bool = false         # 是否高亮（提示可配对）
 var show_shadow: bool = true             # 是否显示阴影
 var base_scale: Vector2 = Vector2.ONE    # 基础缩放（由 Board 根据布局计算）
+var elevation_level: int = 0             # 所在层 z（越高阴影越大，强调悬空感）
+var depth_below_top: int = 0             # 距当前最高层的层数（越深整体越暗）
 
 # ── 颜色调色板（会根据牌型和材质动态调整） ──
 var accent_color := Color(0.22, 0.65, 0.40)    # 强调色（顶部装饰条、发光边框）
@@ -144,6 +146,14 @@ func set_base_scale(value: Vector2) -> void:
 	_update_visual_state()
 
 
+func set_elevation(level: int, below_top: int) -> void:
+	if elevation_level == level and depth_below_top == below_top:
+		return
+	elevation_level = level
+	depth_below_top = below_top
+	queue_redraw()
+
+
 # ── 消除动画 ──
 func play_remove() -> void:
 	if is_removed:
@@ -208,29 +218,32 @@ func play_invalid_feedback() -> void:
 # ═══════════════════════════════════════════════════════════════
 # 绘制顺序（从下到上，后绘制的覆盖先绘制的）：
 # 1. 外发光（选中时）
-# 2. 阴影
-# 3. 厚度侧面（右侧面 + 底侧面）
-# 4. 底盘（厚度顶面）
-# 5. 正面（牌面）
-# 6. 顶部装饰条
-# 7. 高光（光泽反射）
-# 8. 内阴影（底部暗区）
-# 9. 图标
-# 10. 警告/闪光覆盖层
+# 2. 阴影（层越高偏移越大）
+# 3. 一体式底座（右/下露出的边带 = 厚度）
+# 4. 正面（牌面）
+# 5. 顶部装饰条
+# 6. 高光（光泽反射）
+# 7. 内阴影（底部暗区）
+# 8. 图标
+# 9. 警告/闪光覆盖层
 func _draw() -> void:
-	# ── 计算三个矩形的位置 ──
+	# ── 计算矩形位置 ──
 	# _lift_amount 控制牌被"抬起"的高度（0=平放，1=完全抬起）
 	var face_origin: Vector2 = Vector2(0.0, -lerpf(0.0, 14.0, _lift_amount))
 	var face_rect: Rect2 = Rect2(face_origin, TILE_SIZE)
-	# 底盘 = 正面 + TILE_DEPTH 偏移（右下偏移模拟厚度）
-	var chassis_rect: Rect2 = Rect2(face_origin + TILE_DEPTH, TILE_SIZE)
-	# 阴影 = 底盘 + SHADOW_OFFSET 偏移（更远右下，模拟光源在左上）
-	var shadow_rect: Rect2 = Rect2(chassis_rect.position + SHADOW_OFFSET, TILE_SIZE)
+	# 底座 = 正面与厚度偏移的并集（一体式圆角底座，右/下露出的边带即"厚度"）
+	# 一体绘制可避免侧面多边形在圆角处露出的杂线
+	var base_rect: Rect2 = Rect2(face_origin, TILE_SIZE + TILE_DEPTH)
+	# 阴影：层越高偏移越大，强调"悬空"高度
+	var shadow_scale: float = 1.0 + 0.35 * float(elevation_level)
+	var shadow_rect: Rect2 = Rect2(base_rect.position + SHADOW_OFFSET * shadow_scale, base_rect.size)
 
 	# ── 计算颜色强度 ──
 	# 可点击的牌有微弱的环境发光
 	var ambient_glow: float = 0.08 if is_clickable else 0.0
 	var glow_strength: float = clampf(_glow_amount + ambient_glow, 0.0, 1.15)
+	# 层深阴影：距最高层越远整体越暗，用于区分上下层
+	var depth_shade: float = clampf(float(depth_below_top) * 0.05, 0.0, 0.18)
 
 	# ── 根据状态调整颜色 ──
 	# 正面：基础色 + 强调色混合（选中/悬停更亮）
@@ -238,16 +251,19 @@ func _draw() -> void:
 	face_tint = face_tint.lerp(accent_color.lightened(0.82), 0.06 + glow_strength * 0.08)
 	if not is_clickable:
 		face_tint = face_tint.lerp(Color(0.74, 0.76, 0.79), 0.55)  # 不可点击变灰
+	face_tint = face_tint.darkened(depth_shade)
 
-	# 底盘：基础色 + 强调色混合
+	# 底座：基础色 + 强调色混合
 	var chassis_tint: Color = chassis_color.lerp(accent_color.darkened(0.15), 0.18)
 	if not is_clickable:
 		chassis_tint = chassis_tint.lerp(Color(0.44, 0.46, 0.49), 0.35)
+	chassis_tint = chassis_tint.darkened(depth_shade + 0.06)
 
-	# 阴影：根据发光强度调整透明度
-	var shadow_color: Color = Color(0.02, 0.03, 0.05, 0.18 + 0.18 * glow_strength)
+	# 阴影：高层牌阴影更浓，发光时也更明显
+	var shadow_alpha: float = 0.18 + 0.18 * glow_strength + 0.05 * minf(float(elevation_level), 2.0)
+	var shadow_color: Color = Color(0.02, 0.03, 0.05, shadow_alpha)
 	if not is_clickable:
-		shadow_color = Color(0.02, 0.03, 0.05, 0.12)
+		shadow_color = Color(0.02, 0.03, 0.05, 0.12 + 0.04 * minf(float(elevation_level), 2.0))
 
 	# 边缘色
 	var edge_tint: Color = edge_color.lerp(accent_color.darkened(0.30), 0.30 + glow_strength * 0.15)
@@ -270,14 +286,10 @@ func _draw() -> void:
 	if show_shadow:
 		_draw_box(shadow_rect, shadow_color, Color(0, 0, 0, 0), CHASSIS_CORNER, 0)
 
-	# ── 3. 厚度侧面（右侧面 + 底侧面） ──
-	# 连接正面和底盘的"侧面"，是 2.5D 效果的关键
-	_draw_side_polygons(face_rect, chassis_rect, chassis_tint, edge_tint)
+	# ── 3. 一体式底座（含厚度边带） ──
+	_draw_box(base_rect, chassis_tint, edge_tint.darkened(0.12), CHASSIS_CORNER, 2)
 
-	# ── 4. 底盘 ──
-	_draw_box(chassis_rect, chassis_tint, edge_tint.darkened(0.12), CHASSIS_CORNER, 2)
-
-	# ── 5. 正面 ──
+	# ── 4. 正面 ──
 	_draw_box(face_rect, face_tint, border_tint, FACE_CORNER, 2)
 
 	# ── 6. 顶部装饰条（牌的"额头"） ──
@@ -464,32 +476,6 @@ func _build_tooltip() -> String:
 # ═══════════════════════════════════════════════════════════════
 # 绘制辅助函数
 # ═══════════════════════════════════════════════════════════════
-
-# 绘制厚度侧面：连接正面和底盘的多边形
-# 这是 2.5D 效果的核心——没有侧面，牌就是平的
-func _draw_side_polygons(face_rect: Rect2, chassis_rect: Rect2, fill_color: Color, stroke_color: Color) -> void:
-	# 右侧面：正面的右边缘 → 底盘的右边缘
-	var right_side := PackedVector2Array([
-		face_rect.position + Vector2(face_rect.size.x, 0.0),
-		chassis_rect.position + Vector2(chassis_rect.size.x, 0.0),
-		chassis_rect.position + chassis_rect.size,
-		face_rect.position + face_rect.size,
-	])
-	# 底侧面：正面的底边缘 → 底盘的底边缘
-	var bottom_side := PackedVector2Array([
-		face_rect.position + Vector2(0.0, face_rect.size.y),
-		face_rect.position + face_rect.size,
-		chassis_rect.position + chassis_rect.size,
-		chassis_rect.position + Vector2(0.0, chassis_rect.size.y),
-	])
-
-	# 底侧面比右侧面稍亮（模拟光照），右侧面更暗
-	draw_colored_polygon(bottom_side, fill_color.darkened(0.05))
-	draw_colored_polygon(right_side, fill_color.darkened(0.14))
-	# 描边增加清晰度
-	draw_polyline(right_side, stroke_color, 2.0, true)
-	draw_polyline(bottom_side, stroke_color, 2.0, true)
-
 
 # 绘制圆角矩形盒子（使用 Godot 的 StyleBoxFlat）
 func _draw_box(rect: Rect2, fill_color: Color, border_color: Color, radius: int, border_width: int) -> void:

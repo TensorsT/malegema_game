@@ -19,6 +19,11 @@
   - Simplified the score header line to "结算分 X / Y（已得 Z ・ 时间扣分 -P）" and removed the redundant timer bar row, fixing the bar misalignment.
   - Wrapped the bar row in a MarginContainer (32px side margins) so the "进度" and clock labels no longer clip against the panel edges.
   - Raised the bar-row label and clock font size from 18 to 22 (with wider label minimums) for readability.
+- Polished the 2.5D tile rendering (`scripts/tile.gd`, `scripts/board.gd`):
+  - Replaced the right/bottom side polygons (whose sharp corners poked out past the rounded face, leaving stray strokes at each tile's top-right and bottom-left) with a single one-piece rounded base under the face, eliminating the corner artifacts.
+  - Added layer-aware depth cues: tiles below the current top layer are progressively darkened (5% per layer, capped), and higher-layer tiles cast larger, stronger drop shadows.
+  - Increased the per-layer layout offset from (6, 12) to (10, 16) pixels so stacked layers are visibly stepped.
+  - The board now tracks the live top layer each refresh, so lower tiles brighten as layers above them are cleared.
   - The bar tooltip explains the two-layer encoding and states the actual per-second penalty rate of the round; the penalty milestone counter resets per round and syncs silently after loading a save.
 
 ### Validation

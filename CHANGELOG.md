@@ -9,6 +9,7 @@
 
 - Reworked the settlement screen animations in `first-demo(0.1.0)/scripts/run_end.gd` to be more pronounced: stronger panel entrance (0.82 scale with back-ease overshoot, 64px slide), stamp-style title pop-in, per-line bounce-in summary text with a gold-highlighted coin total line, bigger two-wave coin burst, falling confetti on win, and on failure a red rubber-stamp "LOSE" badge that slams over the title followed by an impact-timed panel shake. Also raised the board bar-row label and clock font size from 18 to 22 for readability.
 - Visualized the time-penalty mechanic by merging the score and timer bars in `first-demo(0.1.0)/` (board scene + script) into a single layered settlement-progress bar: the amber fill shows the projected settlement score, a dark-red trailing segment shows points already eaten by time, a live clock with pressure-based coloring sits at the bar's right end, a small red droplet drips from the fill edge whenever a whole point is lost, and the bar tooltip states the per-second penalty rate of the current round.
+- Polished the 2.5D tile rendering in `first-demo(0.1.0)/`: replaced the side polygons with a one-piece rounded base to remove stray corner strokes, darkened lower layers progressively, enlarged higher-layer drop shadows, and increased the per-layer layout offset for clearer stacking.
 
 ### Validation
 
