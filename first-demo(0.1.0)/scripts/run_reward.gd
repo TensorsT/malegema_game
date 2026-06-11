@@ -70,7 +70,7 @@ func _build_rewards() -> void:
 			sb.shadow_color = Color(0, 0, 0, 0.35)
 			sb.shadow_offset = Vector2(3, 3)
 
-		panel.custom_minimum_size = Vector2(100, 130)
+		panel.custom_minimum_size = Vector2(130, 170)
 		panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 		# 牌面图：居中显示，保持宽高比

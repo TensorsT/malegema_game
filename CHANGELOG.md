@@ -3,6 +3,21 @@
 项目后续统一按纯 Godot 主线记录。当前主工程保持目录名 `first-demo(0.1.0)/` 不变；`first-demo/` 只作为早期基础 demo 参考；`malegema/` 为历史 Python 实验实现，不再作为主要推进线。
 
 
+## [0.1.9] 2026-06-11
+
+### Changed
+
+- Enlarged the mainline Godot UI panels and default text sizes in `first-demo(0.1.0)/` to improve fullscreen readability.
+- Enabled `canvas_items` stretch with `expand` aspect for the 1920x1080 Godot design baseline.
+- Increased the board tile layout scale cap so the game board can use more available screen space.
+- Fixed tutorial entry errors by making shared board HUD nodes optional and removing local `round` variable shadowing in the Godot scripts.
+
+### Validation
+
+- Static review completed for edited Godot project, scene, and GDScript files.
+- Godot CLI headless validation was skipped because `godot` is not available in the current PATH.
+- Godot validation was skipped for the tutorial fix at user request; only static text checks were performed.
+
 ## [0.1.7] 2026-05-14
 
 ### 新增

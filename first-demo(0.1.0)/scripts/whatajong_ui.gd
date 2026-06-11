@@ -11,11 +11,11 @@ const COLOR_TEXT := Color(0.17, 0.12, 0.08, 1.0)
 const COLOR_TEXT_SOFT := Color(0.26, 0.20, 0.14, 0.92)
 const COLOR_LIGHT_TEXT := Color(0.97, 0.95, 0.90, 1.0)
 const COLOR_SHADOW := Color(0.03, 0.03, 0.03, 0.22)
-const FONT_SIZE_TITLE := 44
-const FONT_SIZE_SUBTITLE := 30
-const FONT_SIZE_BODY := 24
-const FONT_SIZE_SMALL := 20
-const FONT_SIZE_BUTTON := 24
+const FONT_SIZE_TITLE := 52
+const FONT_SIZE_SUBTITLE := 34
+const FONT_SIZE_BODY := 28
+const FONT_SIZE_SMALL := 22
+const FONT_SIZE_BUTTON := 28
 
 
 static func apply_panel(panel, accent: Color = COLOR_DOT, fill: Color = COLOR_BONE, radius: int = 26, shadow_size: int = 24) -> void:

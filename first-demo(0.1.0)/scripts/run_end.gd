@@ -5,14 +5,17 @@ extends Control
 @onready var summary_label: Label = $EndPanel/VBoxContainer/SummaryLabel
 @onready var action_button: Button = $EndPanel/VBoxContainer/NewRunButton
 
-var _coin_particles: CPUParticles2D
+var _celebration_layer: Control
+var _coin_style: StyleBoxFlat
+var _spark_style: StyleBoxFlat
 
 
 func _ready() -> void:
 	_apply_ui()
-	_setup_coin_particles()
+	_setup_celebration_layer()
 	# 初始状态：面板完全透明，由入场动画逐步显示
 	end_panel.modulate.a = 0.0
+	end_panel.position.y += 22.0
 	title_label.modulate.a = 0.0
 	summary_label.modulate.a = 0.0
 	action_button.modulate.a = 0.0
@@ -29,41 +32,16 @@ func _apply_ui() -> void:
 	WhatajongUI.tint_body_text(summary_label, WhatajongUI.COLOR_TEXT_SOFT, WhatajongUI.FONT_SIZE_BODY)
 
 
-func _setup_coin_particles() -> void:
-	_coin_particles = CPUParticles2D.new()
-	_coin_particles.position = Vector2(300, 120)
-	_coin_particles.emitting = false
-	_coin_particles.amount = 40
-	_coin_particles.lifetime = 2.0
-	_coin_particles.one_shot = true
-	_coin_particles.explosiveness = 0.3
-	_coin_particles.randomness = 0.4
-	_coin_particles.direction = Vector2(0, -1)
-	_coin_particles.spread = 160.0
-	_coin_particles.initial_velocity_min = 60.0
-	_coin_particles.initial_velocity_max = 200.0
-	_coin_particles.angular_velocity_min = -280.0
-	_coin_particles.angular_velocity_max = 280.0
-	_coin_particles.scale_amount_min = 0.4
-	_coin_particles.scale_amount_max = 1.0
-	_coin_particles.color = Color(1, 0.85, 0.15, 1)
+func _setup_celebration_layer() -> void:
+	_celebration_layer = Control.new()
+	_celebration_layer.name = "CelebrationLayer"
+	_celebration_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_celebration_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_celebration_layer.z_index = 8
+	end_panel.add_child(_celebration_layer)
 
-	# 金色渐变
-	var ramp := Gradient.new()
-	ramp.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
-	ramp.colors = PackedColorArray([
-		Color(1, 0.95, 0.6, 1),
-		Color(1, 0.85, 0.15, 1),
-		Color(0.8, 0.55, 0.1, 1),
-	])
-	_coin_particles.color_ramp = ramp
-
-	# 尝试加载金币纹理（静默降级）
-	var tex_path := "res://textures/1.webp"
-	if ResourceLoader.exists(tex_path):
-		_coin_particles.texture = load(tex_path) as Texture2D
-
-	end_panel.add_child(_coin_particles)
+	_coin_style = _make_disc_style(Color(1.0, 0.80, 0.16, 0.92), Color(0.78, 0.48, 0.05, 0.9))
+	_spark_style = _make_disc_style(Color(1.0, 0.96, 0.58, 0.8), Color(0.92, 0.76, 0.18, 0.6))
 
 
 ## -------------------------------------------------------------------------
@@ -71,13 +49,15 @@ func _setup_coin_particles() -> void:
 ## -------------------------------------------------------------------------
 
 func _play_entrance_animation() -> void:
-	# 面板淡入 + 轻微缩放（从 0.92 放大到 1.0）
-	end_panel.pivot_offset = Vector2(300, 250)
-	end_panel.scale = Vector2(0.92, 0.92)
+	# 面板淡入 + 轻微缩放（从 0.96 放大到 1.0）并上浮归位。
+	end_panel.pivot_offset = end_panel.size * 0.5
+	end_panel.scale = Vector2(0.96, 0.96)
+	var panel_target_y := end_panel.position.y - 22.0
 
 	var tween := create_tween().set_parallel(true)
-	tween.tween_property(end_panel, "modulate:a", 1.0, 0.35).set_trans(Tween.TRANS_CUBIC)
-	tween.tween_property(end_panel, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(end_panel, "modulate:a", 1.0, 0.28).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(end_panel, "scale", Vector2(1.0, 1.0), 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(end_panel, "position:y", panel_target_y, 0.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	# 标题延迟淡入
 	await get_tree().create_timer(0.2).timeout
@@ -91,7 +71,7 @@ func _play_entrance_animation() -> void:
 	# 按钮最后淡入
 	await get_tree().create_timer(0.6).timeout
 	var tween3 := create_tween()
-	tween3.tween_property(action_button, "modulate:a", 1.0, 0.3)
+	tween3.tween_property(action_button, "modulate:a", 1.0, 0.25)
 
 
 ## -------------------------------------------------------------------------
@@ -185,13 +165,72 @@ func _reveal_text_with_animation(lines: PackedStringArray, is_win: bool) -> void
 
 	# 全部显示完毕后，如果是胜利则撒金币
 	if is_win:
-		_emit_coin_particles()
+		_play_celebration_burst()
 
 
-func _emit_coin_particles() -> void:
-	if is_instance_valid(_coin_particles):
-		_coin_particles.restart()
-		_coin_particles.emitting = true
+func _play_celebration_burst() -> void:
+	if not is_instance_valid(_celebration_layer):
+		return
+	for child in _celebration_layer.get_children():
+		child.queue_free()
+
+	var center := Vector2(end_panel.size.x * 0.5, 116.0)
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+
+	for i in range(16):
+		var coin := _make_burst_disc(rng.randf_range(8.0, 13.0), _coin_style)
+		var angle := lerpf(-PI * 0.92, -PI * 0.08, float(i) / 15.0)
+		var distance := rng.randf_range(88.0, 190.0)
+		var target := center + Vector2(cos(angle), sin(angle)) * distance + Vector2(rng.randf_range(-20.0, 20.0), rng.randf_range(-8.0, 22.0))
+		_animate_burst_disc(coin, center, target, rng.randf_range(-35.0, 35.0), 0.58 + i * 0.015)
+
+	for i in range(10):
+		var spark := _make_burst_disc(rng.randf_range(4.0, 7.0), _spark_style)
+		var angle := rng.randf_range(-PI * 0.95, -PI * 0.05)
+		var target := center + Vector2(cos(angle), sin(angle)) * rng.randf_range(70.0, 150.0)
+		_animate_burst_disc(spark, center, target, rng.randf_range(-20.0, 20.0), 0.42 + i * 0.018)
+
+
+func _make_burst_disc(diameter: float, style: StyleBoxFlat) -> Panel:
+	var disc := Panel.new()
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	disc.size = Vector2(diameter, diameter)
+	disc.pivot_offset = disc.size * 0.5
+	disc.modulate.a = 0.0
+	disc.add_theme_stylebox_override("panel", style)
+	_celebration_layer.add_child(disc)
+	return disc
+
+
+func _animate_burst_disc(disc: Control, center: Vector2, target: Vector2, spin_degrees: float, duration: float) -> void:
+	disc.position = center - disc.size * 0.5
+	disc.scale = Vector2(0.35, 0.35)
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(disc, "position", target - disc.size * 0.5, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(disc, "scale", Vector2.ONE, minf(duration * 0.45, 0.24)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(disc, "rotation_degrees", spin_degrees, duration).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(disc, "modulate:a", 1.0, 0.08)
+	tween.chain().tween_property(disc, "modulate:a", 0.0, 0.22).set_delay(maxf(duration - 0.22, 0.0))
+	tween.finished.connect(disc.queue_free)
+
+
+func _make_disc_style(fill: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.border_width_left = 1
+	style.corner_radius_top_left = 99
+	style.corner_radius_top_right = 99
+	style.corner_radius_bottom_right = 99
+	style.corner_radius_bottom_left = 99
+	style.shadow_color = Color(0.24, 0.13, 0.02, 0.18)
+	style.shadow_size = 3
+	style.shadow_offset = Vector2(0, 1)
+	return style
 
 
 ## -------------------------------------------------------------------------

@@ -1,5 +1,3 @@
 res://scripts/board.gd
-res://scripts/run_reward.gd
-res://scripts/run_end.gd
 res://scripts/run_manager.gd
-res://scripts/inventory_popup.gd
+res://scripts/run_state.gd

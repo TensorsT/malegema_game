@@ -2,6 +2,23 @@
 
 项目后续统一按纯 Godot 主线记录。当前主工程保持目录名 `first-demo(0.1.0)/` 不变；`first-demo/` 只作为早期基础 demo 参考；`malegema/` 为历史 Python 实验实现，不再作为主要推进线。
 
+## [0.1.9] 2026-06-11
+
+### Changed
+
+- Enlarged the main menu, start options, help, settings, game board, shop, reward, and settlement panels for better readability on fullscreen desktop displays.
+- Raised the shared `WhatajongUI` title, subtitle, body, small-text, and button font-size constants, and applied explicit larger font sizes to runtime-styled start menu labels.
+- Enabled Godot `canvas_items` stretch with `expand` aspect for the 1920x1080 design baseline.
+- Increased the board tile layout scale cap from `1.45` to `1.65` so the game board can use more available screen space.
+- Made the board HUD progress/bonus nodes optional so the tutorial scene can continue using the shared board script without missing-node errors.
+- Renamed local `round` variables that shadowed Godot's built-in `round()` function, and fixed the tutorial score estimate to use `roundi()`.
+
+### Validation
+
+- Static review completed for edited Godot project, scene, and GDScript files.
+- Godot CLI headless validation was skipped because `godot` is not available in the current PATH.
+- Godot validation was skipped for the tutorial fix at user request; only static text checks were performed.
+
 ## [0.1.8c] 2026-06-10
 
 ### 新增

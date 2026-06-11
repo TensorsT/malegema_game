@@ -22,24 +22,24 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -220.0
-offset_top = -180.0
-offset_right = 220.0
-offset_bottom = 336.0
+offset_left = -330.0
+offset_top = -270.0
+offset_right = 330.0
+offset_bottom = 380.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MainPanel" unique_id=1281334002]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = 416.0
-offset_bottom = 336.0
-theme_override_constants/separation = 14
+offset_left = 38.0
+offset_top = 36.0
+offset_right = 622.0
+offset_bottom = 614.0
+theme_override_constants/separation = 20
 
 [node name="TitleLabel" type="Label" parent="MainPanel/VBoxContainer" unique_id=2045719206]
 layout_mode = 2
-theme_override_font_sizes/font_size = 42
+theme_override_font_sizes/font_size = 58
 text = "Malegema"
 horizontal_alignment = 1
 
@@ -49,22 +49,22 @@ text = "欢迎来到游戏开始页面"
 horizontal_alignment = 1
 
 [node name="StartButton" type="Button" parent="MainPanel/VBoxContainer" unique_id=1484935344]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
 text = "开始游戏"
 
 [node name="ContinueButton" type="Button" parent="MainPanel/VBoxContainer" unique_id=1496029848]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
 text = "继续游戏"
 
 [node name="HelpButton" type="Button" parent="MainPanel/VBoxContainer" unique_id=1772634866]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
 text = "帮助"
 
 [node name="SettingsButton" type="Button" parent="MainPanel/VBoxContainer" unique_id=1426372673]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
 text = "设置"
 
@@ -75,7 +75,7 @@ horizontal_alignment = 1
 
 [node name="StartOptionsPopup" type="PopupPanel" parent="." unique_id=1612928011]
 initial_position = 1
-size = Vector2i(520, 360)
+size = Vector2i(680, 460)
 
 [node name="MarginContainer" type="MarginContainer" parent="StartOptionsPopup" unique_id=1498817438]
 anchors_preset = 15
@@ -83,22 +83,22 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 4.0
 offset_top = 4.0
-offset_right = 516.0
-offset_bottom = 356.0
+offset_right = 676.0
+offset_bottom = 456.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
 
 [node name="VBoxContainer" type="VBoxContainer" parent="StartOptionsPopup/MarginContainer" unique_id=1362084943]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 16
 
 [node name="StartOptionsTitle" type="Label" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1191686177]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 34
 text = "开始选项"
 horizontal_alignment = 1
 
@@ -111,34 +111,34 @@ layout_mode = 2
 text = "种子"
 
 [node name="SeedInput" type="LineEdit" parent="StartOptionsPopup/MarginContainer/VBoxContainer/SeedRow" unique_id=1518362238]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "输入种子（留空随机）"
 
 [node name="SeedStartButton" type="Button" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1406614963]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 text = "用种子开始"
 
 [node name="NoSeedButton" type="Button" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1978156919]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 text = "直接开始"
 
 [node name="TutorialButton" type="Button" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=497933386]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 text = "进入教程"
 
 [node name="CloseStartOptionsButton" type="Button" parent="StartOptionsPopup/MarginContainer/VBoxContainer" unique_id=1833688743]
-custom_minimum_size = Vector2(0, 46)
+custom_minimum_size = Vector2(0, 58)
 layout_mode = 2
 text = "返回"
 
 [node name="HelpPopup" type="PopupPanel" parent="." unique_id=1672275984]
 initial_position = 1
-size = Vector2i(460, 260)
+size = Vector2i(620, 380)
 
 [node name="MarginContainer" type="MarginContainer" parent="HelpPopup" unique_id=1075409551]
 anchors_preset = 15
@@ -146,27 +146,27 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 4.0
 offset_top = 4.0
-offset_right = 456.0
-offset_bottom = 256.0
+offset_right = 616.0
+offset_bottom = 376.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
 
 [node name="VBoxContainer" type="VBoxContainer" parent="HelpPopup/MarginContainer" unique_id=639784170]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 16
 
 [node name="HelpTitle" type="Label" parent="HelpPopup/MarginContainer/VBoxContainer" unique_id=1361596547]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 34
 text = "帮助"
 horizontal_alignment = 1
 
 [node name="HelpText" type="RichTextLabel" parent="HelpPopup/MarginContainer/VBoxContainer" unique_id=112081338]
-custom_minimum_size = Vector2(0, 130)
+custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
 bbcode_enabled = true
 text = "[b]操作说明：[/b]
@@ -181,7 +181,7 @@ text = "关闭"
 
 [node name="SettingsPopup" type="PopupPanel" parent="." unique_id=1195832748]
 initial_position = 1
-size = Vector2i(460, 280)
+size = Vector2i(660, 420)
 
 [node name="MarginContainer" type="MarginContainer" parent="SettingsPopup" unique_id=1323728587]
 anchors_preset = 15
@@ -189,22 +189,22 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 4.0
 offset_top = 4.0
-offset_right = 456.0
-offset_bottom = 276.0
+offset_right = 656.0
+offset_bottom = 416.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
 
 [node name="VBoxContainer" type="VBoxContainer" parent="SettingsPopup/MarginContainer" unique_id=1709106426]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 18
 
 [node name="SettingsTitle" type="Label" parent="SettingsPopup/MarginContainer/VBoxContainer" unique_id=481618089]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 34
 text = "设置"
 horizontal_alignment = 1
 
@@ -217,7 +217,7 @@ layout_mode = 2
 text = "音乐音量"
 
 [node name="MusicSlider" type="HSlider" parent="SettingsPopup/MarginContainer/VBoxContainer/MusicRow" unique_id=367561567]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(330, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 value = 70.0
@@ -231,7 +231,7 @@ layout_mode = 2
 text = "背景音乐"
 
 [node name="MusicOption" type="OptionButton" parent="SettingsPopup/MarginContainer/VBoxContainer/MusicSelectRow" unique_id=1034258141]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(330, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 

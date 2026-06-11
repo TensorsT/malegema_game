@@ -23,7 +23,7 @@ const Z_OFFSET_X := 6
 const Z_OFFSET_Y := 12
 const TILE_DRAW_SIZE := Vector2(82, 120)
 const BOARD_PADDING := Vector2(54, 42)
-const MAX_LAYOUT_SCALE := 1.45
+const MAX_LAYOUT_SCALE := 1.65
 const WIND_PUSH_DURATION := 0.24
 const WIND_SETTLE_DURATION := 0.12
 const WIND_OVERSHOOT_PX := 18.0
@@ -33,11 +33,11 @@ const WIND_OVERSHOOT_PX := 18.0
 @onready var game_panel: Panel = $GamePanel
 @onready var title_label: Label = $GamePanel/VBoxContainer/TitleLabel
 @onready var score_label: Label = $GamePanel/VBoxContainer/ScoreLabel
-@onready var score_bar: ProgressBar = $GamePanel/VBoxContainer/ScoreBarRow/ScoreBar
-@onready var score_bar_label: Label = $GamePanel/VBoxContainer/ScoreBarRow/ScoreBarLabel
-@onready var combo_label: Label = $GamePanel/VBoxContainer/ComboLabel
-@onready var timer_bar: ProgressBar = $GamePanel/VBoxContainer/TimerBarRow/TimerBar
-@onready var timer_bar_label: Label = $GamePanel/VBoxContainer/TimerBarRow/TimerBarLabel
+@onready var score_bar: ProgressBar = get_node_or_null("GamePanel/VBoxContainer/ScoreBarRow/ScoreBar") as ProgressBar
+@onready var score_bar_label: Label = get_node_or_null("GamePanel/VBoxContainer/ScoreBarRow/ScoreBarLabel") as Label
+@onready var combo_label: Label = get_node_or_null("GamePanel/VBoxContainer/ComboLabel") as Label
+@onready var timer_bar: ProgressBar = get_node_or_null("GamePanel/VBoxContainer/TimerBarRow/TimerBar") as ProgressBar
+@onready var timer_bar_label: Label = get_node_or_null("GamePanel/VBoxContainer/TimerBarRow/TimerBarLabel") as Label
 @onready var status_label: Label = $GamePanel/VBoxContainer/StatusLabel
 @onready var board_shadow: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardShadow
 @onready var board_surface: ColorRect = $GamePanel/VBoxContainer/BoardContainer/BoardSurface
@@ -202,12 +202,16 @@ func _apply_whatajong_ui() -> void:
 func _style_bar_labels() -> void:
 	var label_color := Color(0.88, 0.82, 0.68, 0.95)
 	for lbl: Label in [score_bar_label, timer_bar_label]:
+		if lbl == null:
+			continue
 		lbl.add_theme_color_override("font_color", label_color)
-		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.add_theme_font_size_override("font_size", 16)
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 
 func _style_score_bar() -> void:
+	if score_bar == null:
+		return
 	score_bar.tooltip_text = "分数进度：已有分 / 过关分数"
 	# 背景：深色圆角条
 	var bg_style := StyleBoxFlat.new()
@@ -237,6 +241,8 @@ func _style_score_bar() -> void:
 
 
 func _style_combo_label() -> void:
+	if combo_label == null:
+		return
 	combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	combo_label.add_theme_color_override("font_color", Color(0.90, 0.65, 0.15))
 	combo_label.add_theme_font_size_override("font_size", 20)
@@ -244,6 +250,8 @@ func _style_combo_label() -> void:
 
 
 func _style_timer_bar() -> void:
+	if timer_bar == null:
+		return
 	timer_bar.tooltip_text = "时间压力：预计结算分 / 过关分数"
 	# 背景：深色圆角条
 	var bg_style := StyleBoxFlat.new()
@@ -273,15 +281,17 @@ func _style_timer_bar() -> void:
 
 
 func _update_timer_bar() -> void:
+	if timer_bar == null:
+		return
 	if not RunManager.has_active_run():
 		timer_bar.visible = false
 		return
 
 	timer_bar.visible = true
-	var round := RunManager.get_round()
-	var objective := int(round.get("pointObjective", 0))
+	var round_data := RunManager.get_round()
+	var objective := int(round_data.get("pointObjective", 0))
 	var points := int(game_state.get("points", 0))
-	var timer_points := float(round.get("timerPoints", 0.0))
+	var timer_points := float(round_data.get("timerPoints", 0.0))
 
 	# 计算时间进度比例：基于"预计结算分"相对目标分
 	# ratio = (estimated_total / objective)，1.0 = 刚好达标，>1.0 充裕，<1.0 紧张
@@ -720,7 +730,6 @@ func _handle_round_end() -> void:
 func _apply_round_header() -> void:
 	if not RunManager.has_active_run():
 		return
-	var round := RunManager.get_round()
 	var round_id := int(RunManager.run.get("round", 1))
 	title_label.text = "第 %d 回合" % round_id
 	_update_score_label()
@@ -732,9 +741,9 @@ func _update_score_label() -> void:
 		score_label.text = "已有分数：%d" % points
 		return
 
-	var round := RunManager.get_round()
-	var objective := int(round.get("pointObjective", 0))
-	var timer_points := float(round.get("timerPoints", 0.0))
+	var round_data := RunManager.get_round()
+	var objective := int(round_data.get("pointObjective", 0))
+	var timer_points := float(round_data.get("timerPoints", 0.0))
 	var penalty := float(game_state.get("time", 0.0)) * timer_points
 	var estimated_total := int(points - penalty)
 	score_label.text = "已有分数：%d / 过关分数：%d / 预计结算：%d" % [
@@ -745,14 +754,16 @@ func _update_score_label() -> void:
 
 
 func _update_score_bar() -> void:
+	if score_bar == null:
+		return
 	if not RunManager.has_active_run():
 		score_bar.visible = false
 		return
 
 	score_bar.visible = true
 	var points := int(game_state.get("points", 0))
-	var round := RunManager.get_round()
-	var objective := int(round.get("pointObjective", 0))
+	var round_data := RunManager.get_round()
+	var objective := int(round_data.get("pointObjective", 0))
 
 	if objective <= 0:
 		score_bar.value = 100.0
@@ -779,6 +790,8 @@ func _update_score_bar() -> void:
 
 
 func _update_combo_label() -> void:
+	if combo_label == null:
+		return
 	var dragon_run: Dictionary = game_state.get("dragon_run", {}) as Dictionary
 	var phoenix_run: Dictionary = game_state.get("phoenix_run", {}) as Dictionary
 	var dragon_combo := int(dragon_run.get("combo", 0))
@@ -1075,9 +1088,7 @@ func _load_saved_board() -> void:
 	_update_timer_bar()
 
 	if RunManager.has_active_run():
-		var round := RunManager.get_round()
 		var round_id := int(RunManager.run.get("round", 1))
-		var objective := int(round.get("pointObjective", 0))
 		title_label.text = "第 %d 回合" % round_id
 		status_label.text = "继续游戏，当前分数：%d" % int(game_state["points"])
 	else:

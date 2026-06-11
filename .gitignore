@@ -1,0 +1,35 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+.env.keys
+
+# Node / Electron / frontend build output
+**/node_modules/
+**/dist/
+**/out/
+**/.turbo/
+**/coverage/
+**/tsconfig.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Godot editor state and caches
+**/.godot/
+**/.import/
+**/.mono/
+**/mono_crash.*.json
+
+# Optional: keep Godot import setting files tracked by default.
+# Uncomment the next line if you prefer to regenerate them locally.
+# **/*.import

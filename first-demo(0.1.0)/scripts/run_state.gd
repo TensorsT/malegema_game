@@ -171,20 +171,20 @@ static func get_levels(run_id: String) -> Array:
 
 static func generate_items(run: Dictionary, levels: Array) -> Array:
 	var run_id := String(run.get("runId", ""))
-	var round := int(run.get("round", 1))
+	var round_id := int(run.get("round", 1))
 	var freeze: Dictionary = run.get("freeze", {})
 	var freeze_active := not freeze.is_empty() and bool(freeze.get("active", false))
 	if freeze_active:
-		round = int(freeze.get("round", round))
+		round_id = int(freeze.get("round", round_id))
 
-	var rng := create_rng("items-%s-%d" % [run_id, round])
+	var rng := create_rng("items-%s-%d" % [run_id, round_id])
 	var item_ids := {}
 	for item in run.get("items", []):
 		item_ids[String(item.get("id", ""))] = true
 
 	var initial_pool: Array = []
 	for level in levels:
-		if int(level.get("level", 0)) <= round:
+		if int(level.get("level", 0)) <= round_id:
 			initial_pool.append_array(level.get("tileItems", []))
 
 	if initial_pool.is_empty():

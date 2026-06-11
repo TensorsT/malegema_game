@@ -416,11 +416,11 @@ func _on_back_button_pressed() -> void:
 func _update_score_label() -> void:
 	var points := int(game_state.get("points", 0))
 	if RunManager.has_active_run():
-		var round := RunManager.get_round()
-		var objective := int(round.get("pointObjective", 0))
-		var timer_points := float(round.get("timerPoints", 0.0))
+		var round_data := RunManager.get_round()
+		var objective := int(round_data.get("pointObjective", 0))
+		var timer_points := float(round_data.get("timerPoints", 0.0))
 		var penalty := float(game_state.get("time", 0.0)) * timer_points
-		var estimated_total := int(round(points - penalty))
+		var estimated_total := roundi(points - penalty)
 		if score_label != null:
 			score_label.text = "已有分数：%d / 过关分数：%d / 预计结算：%d" % [points, objective, estimated_total]
 	else:

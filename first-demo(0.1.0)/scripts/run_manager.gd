@@ -58,7 +58,7 @@ func enter_stage(stage: String) -> void:
 func get_round() -> Dictionary:
 	if not has_active_run():
 		return {}
-	var round := RunState.generate_round(int(run.get("round", 1)), run)
+	var round_data := RunState.generate_round(int(run.get("round", 1)), run)
 	var run_id := String(run.get("runId", ""))
 	var round_id := int(run.get("round", 1))
 	var max_points_map: Dictionary = run.get("roundMaxPoints", {}) as Dictionary
@@ -76,9 +76,9 @@ func get_round() -> Dictionary:
 			var power_factor := clampf(0.75 + deck_power * 0.002, 0.75, 0.90)
 			var dynamic_objective := int(ceil(table_max * power_factor))
 			# 取公式值和动态值的较小者，确保目标分永远可达成
-			round["pointObjective"] = mini(int(round.get("pointObjective", 0)), dynamic_objective)
+			round_data["pointObjective"] = mini(int(round_data.get("pointObjective", 0)), dynamic_objective)
 
-	return round
+	return round_data
 
 
 ## 估算牌组牌力：每张牌的基础分 + 材质加成之和
