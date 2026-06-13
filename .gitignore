@@ -1,18 +1,29 @@
-# OS / Editor
+# ── OS / 编辑器 ──────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+Desktop.ini
+*~
+*.swp
+*.swo
+
 .vscode/
 .idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
-# Local env / secrets
+# ── 环境变量 / 密钥 ──────────────────────────────────────────
 .env
 .env.*
 !.env.example
 !.env.sample
 !.env.template
 .env.keys
+*.pem
+*.key
 
-# Node / Electron / frontend build output
+# ── Node / 前端构建（仓库内若有工具链）──────────────────────
 **/node_modules/
 **/dist/
 **/out/
@@ -24,12 +35,44 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Godot editor state and caches
+# ── Godot 4 编辑器缓存与本地状态 ────────────────────────────
 **/.godot/
 **/.import/
+
+# Godot 导出产物（按需取消注释）
+# **/export/
+# **/*.apk
+# **/*.exe
+# **/*.x86_64
+
+# 自动生成的翻译（若使用 CSV 导入）
+# *.translation
+
+# 保留 *.import：本项目默认跟踪 Godot 资源导入配置
+# **/*.import
+
+# ── Godot C# / Mono ─────────────────────────────────────────
 **/.mono/
 **/mono_crash.*.json
+**/bin/
+**/obj/
+*.dll
+*.pdb
+*.exe
 
-# Optional: keep Godot import setting files tracked by default.
-# Uncomment the next line if you prefer to regenerate them locally.
-# **/*.import
+# ── 本地工具 / Agent 工作区（勿提交）────────────────────────
+**/.workbuddy/
+**/.qwen/
+**/.uploads/
+**/.cursor/
+
+# ── 运行时用户数据（若误放到项目目录）──────────────────────
+**/savegame.json
+**/run_save.json
+**/pvp_net.cfg
+
+# ── 临时与日志 ──────────────────────────────────────────────
+*.log
+*.tmp
+*.temp
+.cache/
