@@ -2,6 +2,60 @@
 
 项目后续统一按纯 Godot 主线记录。当前主工程保持目录名 `first-demo(0.1.0)/` 不变；`first-demo/` 只作为早期基础 demo 参考；`malegema/` 为历史 Python 实验实现，不再作为主要推进线。
 
+## [0.2.0] 2026-06-13
+
+### 重构（联机模块：跨网络方案）
+
+- 联机底层重构为“在线（Noray 中继/打洞）+ 局域网（IP 直连）”双模式架构，目标是让不同网络、无公网 IP、不做端口映射的玩家也能“房主创建 + 房间码加入”，这是小型商业游戏常见的稳定做法。
+- 集成官方 `netfox.noray` + `netfox.internals` 插件（置于 `addons/`），复用经过验证的 NAT 打洞/中继实现，避免手写协议导致的不稳定；在 `project.godot` 注册 `Noray`、`PacketHandshake` 两个 Autoload。
+- 重写 `scripts/pvp_network.gd`：
+  - 新增在线模式 `host_online()` / `join_online(room_code)`，房主注册到 Noray 后产出房间码（OID），加入方用房间码经打洞连接，失败自动回退中继。
+  - 保留局域网 `create_direct_host()` / `join_direct()`，对外信号（peer_connected / server_disconnected / connection_failed / connection_succeeded 等）保持稳定，`pvp_board.gd` 无需改动。
+  - 新增 Noray 服务器地址持久化（`user://pvp_net.cfg`）及读写接口；移除旧的 UPnP/手动公网/邀请码编码等不稳定路径。
+- 重写 `scripts/pvp_lobby.gd`：清晰的主菜单（创建在线房间 / 加入在线房间 / 局域网创建 / 局域网加入 / 联机服务器设置 / 教程 / 返回）；加入面板按在线（房间码）或局域网（IP+端口）自适应；等待面板显示房间码并支持复制；新增联机服务器设置弹窗。
+- 新增部署文档 `NORAY_SETUP.md`：提供基于 Oracle Cloud Always Free + Docker 的免费 Noray 自建步骤、端口放行清单与常见问题。
+
+### 说明 / 待办
+
+- 跨网络在线联机需要一台带公网 IP 的 Noray 服务器（自建，见 `NORAY_SETUP.md`）；未配置服务器地址时仍可使用局域网联机。
+
+### Validation
+
+- Static review completed for `scripts/pvp_network.gd`, `scripts/pvp_lobby.gd`, and `project.godot`.
+- Vendored `addons/netfox.noray` + `addons/netfox.internals` from netfox v1.45.0 (official release archive).
+- IDE diagnostics check via `ReadLints` on edited project scripts.
+- Godot CLI headless validation and a live Noray cross-network round-trip were NOT run here (no `godot` CLI in PATH and no deployed Noray server); needs in-editor + two-machine verification after deploying a Noray server.
+
+### 补充（部署辅助）
+
+- 新增 `docker-compose.noray.yml`，便于在 VPS 上一键启动 Noray 容器。
+- 更新 `NORAY_SETUP.md`：补充 docker compose 启动方式、服务器自检命令与部署后联机自测清单。
+
+### 调整（联机入口暂缓）
+
+- 主菜单「联机对战」按钮改为弹出「敬请期待」提示（`scripts/start_menu.gd`），暂不进入 `pvp_lobby`；联机相关代码与场景保留，后续可继续启用。
+
+### Validation（联机入口暂缓）
+
+- Static review completed for `scripts/start_menu.gd`.
+- IDE diagnostics check via `ReadLints` on edited file.
+- Godot CLI headless validation was skipped because `godot` is not available in the current PATH.
+
+### 新增
+
+- 特殊关卡事件系统：新增 `EventManager`（事件类型/关卡表/参数/UI配色）、`EventBanner`（开场动画横幅）、`EventStormController`（风暴定时补牌）三个新脚本。
+- **⚡ 急速关卡**（第 3、15 回合）：时间惩罚系数提升至 2.5 倍，HUD 及标题染橙色，开局横幅滑入提示。
+- **✨ 黄金消除**（第 7、20 回合）：每次配对额外 +8 分，状态栏显示专属文字，HUD 及标题染金色，开局横幅滑入提示。
+- **🌪 风暴关卡**（第 10、23 回合）：每 12 秒自动往棋盘补入 2 张随机牌，新牌从上方落入并伴有蓝白闪光，HUD 及标题染蓝色，开局横幅滑入提示。
+- 开场横幅动画：从屏幕上方滑入停留再滑出，横幅期间暂停玩家交互；支持标题脉冲放大动画和全屏遮罩淡入。
+- 帮助弹窗全面更新：新增龙/凤连击机制说明及三种特殊事件（急速/黄金消除/风暴）的完整介绍，标注各事件发生的回合数。
+
+### 调整
+
+- 急速关卡时间惩罚倍率同步作用于分数条（ScoreBar）和分数文字（ScoreLabel），玩家可直观看到压力变化。
+- 风暴关卡回合结束后自动停止补牌定时器，不会在结算阶段继续补牌。
+
+
 ## [0.1.9a] 2026-06-11
 
 ### Changed

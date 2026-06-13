@@ -66,6 +66,12 @@ var _active_card_ids: Array[String] = []
 var _last_penalty_int := -1
 # 当前存活牌的最高层 z，由 _refresh_tiles_state 维护
 var _current_top_layer := 0
+# 风暴关卡控制器（非风暴关卡时为 null）
+var _storm_controller: EventStormController = null
+# 当前关卡事件 ID（""=无事件）
+var _current_event: String = ""
+# 开发者模式跳过关卡按钮
+var _skip_button: Button = null
 
 var game_state := {
 	"points": 0,
@@ -88,6 +94,7 @@ func _ready() -> void:
 	_setup_wind_gust_overlay()
 	_setup_ambient_particles()
 	_setup_inventory()
+	_setup_skip_button()
 	board_container.resized.connect(_on_board_container_resized)
 	_on_board_container_resized()
 	if SaveManager.consume_restore():
@@ -99,11 +106,13 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if String(game_state.get("end_condition", "")) != "":
+		_update_skip_button_visibility()
 		return
 	game_state["time"] = float(game_state.get("time", 0.0)) + delta
 	_update_score_label()
 	_update_score_bar()
 	_update_combo_label()
+	_update_skip_button_visibility()
 
 
 func _setup_new_round() -> void:
@@ -176,6 +185,8 @@ func _setup_new_round() -> void:
 	_update_score_bar()
 	_update_combo_label()
 	status_label.text = "请选择两张可点击的相同牌。"
+	# 特殊事件：读取本回合事件并激活
+	_activate_round_event()
 
 
 func _apply_whatajong_ui() -> void:
@@ -357,6 +368,14 @@ func _on_tile_pressed(tile_id: String) -> void:
 	var wind_direction := _get_wind_direction_for_tile(tile)
 	var motion_snapshot := _snapshot_live_tile_views()
 	var result := GameLoop.select_tile(tile_db, game_state, tile_id)
+	# 黄金消除：配对成功时额外加分
+	if String(result.get("kind", "")) == "matched":
+		var golden_bonus := _get_golden_bonus()
+		if golden_bonus > 0:
+			game_state["points"] = int(game_state.get("points", 0)) + golden_bonus
+			result["points"] = int(result.get("points", 0)) + golden_bonus
+			result["total_points"] = int(game_state["points"])
+			result["golden_bonus"] = golden_bonus
 	var motion_map := _build_tile_motion_map(motion_snapshot)
 	_refresh_tiles_state(motion_map)
 	if String(result.get("kind", "")) == "matched" and wind_direction != Vector2.ZERO:
@@ -386,10 +405,18 @@ func _status_from_result(result: Dictionary) -> void:
 		"unselected":
 			status_label.text = "已取消选择，当前分数：%d" % int(game_state["points"])
 		"matched":
-			status_label.text = "配对成功 +%d，当前分数：%d" % [
-				int(result.get("points", 0)),
-				int(game_state["points"]),
-			]
+			var golden_b := int(result.get("golden_bonus", 0))
+			if golden_b > 0:
+				status_label.text = "✨ 黄金消除 +%d（含奖励 +%d），当前分数：%d" % [
+					int(result.get("points", 0)),
+					golden_b,
+					int(game_state["points"]),
+				]
+			else:
+				status_label.text = "配对成功 +%d，当前分数：%d" % [
+					int(result.get("points", 0)),
+					int(game_state["points"]),
+				]
 		"mismatch":
 			status_label.text = "这两张不能消除，当前分数：%d" % int(game_state["points"])
 		_:
@@ -734,6 +761,8 @@ func _handle_round_end() -> void:
 	if _round_end_pending:
 		return
 	_round_end_pending = true
+	# 回合结束：停止风暴定时器
+	_deactivate_round_event()
 	if not RunManager.has_active_run():
 		return
 	var result := RunManager.evaluate_round(game_state)
@@ -747,6 +776,129 @@ func _handle_round_end() -> void:
 	if not is_inside_tree() or not RunManager.has_active_run():
 		return
 	RunManager.enter_stage(RunManager.STAGE_SETTLEMENT)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 特殊关卡事件系统
+# ═══════════════════════════════════════════════════════════════════════════════
+
+func _activate_round_event() -> void:
+	# 停止上一关卡的风暴控制器（如果有）
+	if is_instance_valid(_storm_controller):
+		_storm_controller.stop()
+		_storm_controller = null
+
+	if not RunManager.has_active_run():
+		_current_event = EventManager.EVENT_NONE
+		_apply_event_hud_tint()
+		return
+
+	var round_id := int(RunManager.run.get("round", 1))
+	_current_event = EventManager.get_event_for_round(round_id)
+	EventManager.apply_event_to_state(game_state, _current_event)
+	_apply_event_hud_tint()
+
+	if _current_event == EventManager.EVENT_NONE:
+		return
+
+	# 暂停玩家交互，等横幅播完再开放
+	set_process_input(false)
+	EventBanner.show_event(self, _current_event, func() -> void:
+		set_process_input(true)
+		# 风暴关卡：横幅播完后才启动定时器
+		if _current_event == EventManager.EVENT_TILE_STORM:
+			_start_storm_event()
+	)
+
+
+func _apply_event_hud_tint() -> void:
+	## 根据事件类型给 title_label 和 score_label 染上对应主题色
+	var event_color := EventManager.get_event_hud_color(_current_event)
+	if _current_event == EventManager.EVENT_NONE:
+		WhatajongUI.tint_label(title_label, WhatajongUI.COLOR_DOT.darkened(0.38))
+		WhatajongUI.tint_body_text(score_label, WhatajongUI.COLOR_TEXT, WhatajongUI.FONT_SIZE_BODY)
+		return
+	title_label.add_theme_color_override("font_color", event_color)
+	score_label.add_theme_color_override("font_color", event_color)
+
+	# 给标题加事件标签
+	var event_name := EventManager.get_event_display_name(_current_event)
+	var round_id := int(RunManager.run.get("round", 1))
+	title_label.text = "第 %d 回合　%s" % [round_id, event_name]
+
+
+func _start_storm_event() -> void:
+	_storm_controller = EventStormController.new()
+	add_child(_storm_controller)
+	_storm_controller.wave_triggered.connect(_on_storm_wave)
+	_storm_controller.start(self)
+
+
+## 风暴风向接口：由 EventStormController 调用
+## wind_rank: "n" | "s" | "e" | "w"
+## 用 ResolveWinds 将棋盘上所有牌向指定方向推移，并播放风效动画。
+func storm_apply_wind(wind_rank: String) -> void:
+	if not RunManager.has_active_run():
+		return
+	if tile_db.is_empty():
+		return
+
+	# 构造虚拟风牌（不在棋盘上，仅用于传参给 ResolveWinds）
+	var fake_tile: Dictionary = {
+		"id":       "_storm_wind_fake",
+		"card_id":  "wind" + wind_rank,
+		"deleted":  false,
+		"selected": false,
+		"x": 0, "y": 0, "z": 0,
+	}
+
+	# 快照当前视图位置 → 应用风向推移 → 构建运动图 → 动画刷新
+	var snapshot := _snapshot_live_tile_views()
+	ResolveWinds.apply(tile_db, fake_tile)
+	var motion_map := _build_tile_motion_map(snapshot)
+	_refresh_tiles_state(motion_map)
+
+	# 播放风效覆盖层
+	_play_wind_gust(_wind_rank_to_direction(wind_rank))
+
+	# 检查游戏结束条件
+	var condition := GameLoop.game_over_condition(tile_db)
+	if condition != "":
+		game_state["end_condition"] = condition
+		_handle_round_end()
+
+
+func _wind_rank_to_direction(wind_rank: String) -> Vector2:
+	match wind_rank:
+		"n": return Vector2.UP
+		"s": return Vector2.DOWN
+		"e": return Vector2.RIGHT
+		"w": return Vector2.LEFT
+		_: return Vector2.RIGHT
+
+
+func _on_storm_wave(wind_rank: String) -> void:
+	var wind_names: Dictionary = {"n": "北", "s": "南", "e": "东", "w": "西"}
+	var dir_name: String = String(wind_names.get(wind_rank, wind_rank))
+	status_label.text = "🌪 风暴！%s风席卷棋盘！" % dir_name
+
+
+func _get_round_event_timer_modifier() -> float:
+	## 急速关卡的时间惩罚倍率（在 _update_score_label/_update_score_bar 里乘以此值）
+	if _current_event == EventManager.EVENT_RUSH:
+		return EventManager.RUSH_TIMER_MULTIPLIER
+	return 1.0
+
+
+func _get_golden_bonus() -> int:
+	return EventManager.get_golden_bonus(_current_event)
+
+
+func _deactivate_round_event() -> void:
+	if is_instance_valid(_storm_controller):
+		_storm_controller.stop()
+		_storm_controller = null
+	_current_event = EventManager.EVENT_NONE
 
 
 func _apply_round_header() -> void:
@@ -774,7 +926,7 @@ func _update_score_label() -> void:
 
 	var round_data := RunManager.get_round()
 	var objective := int(round_data.get("pointObjective", 0))
-	var timer_points := float(round_data.get("timerPoints", 0.0))
+	var timer_points := float(round_data.get("timerPoints", 0.0)) * _get_round_event_timer_modifier()
 	var penalty := float(game_state.get("time", 0.0)) * timer_points
 	var estimated_total := int(points - penalty)
 	if penalty > 0.05:
@@ -803,7 +955,7 @@ func _update_score_bar() -> void:
 	var points := int(game_state.get("points", 0))
 	var round_data := RunManager.get_round()
 	var objective := int(round_data.get("pointObjective", 0))
-	var timer_points := float(round_data.get("timerPoints", 0.0))
+	var timer_points := float(round_data.get("timerPoints", 0.0)) * _get_round_event_timer_modifier()
 	var elapsed: float = float(game_state.get("time", 0.0))
 	var penalty := maxf(elapsed * timer_points, 0.0)
 	var estimated_total := float(points) - penalty
@@ -1067,6 +1219,57 @@ func _setup_inventory() -> void:
 func _on_inventory_pressed() -> void:
 	RunManager.ensure_deck_initialized()
 	_inventory_popup.show_inventory(RunManager.deck, _active_card_ids)
+
+
+func _setup_skip_button() -> void:
+	_skip_button = Button.new()
+	_skip_button.text = "⏩ 跳过"
+	_skip_button.custom_minimum_size = Vector2(110, 42)
+	WhatajongUI.apply_button(_skip_button, Color(0.85, 0.25, 0.25), 0.90)
+	WhatajongUI.apply_display_font(_skip_button, WhatajongUI.FONT_SIZE_SMALL)
+	_skip_button.pressed.connect(_on_skip_button_pressed)
+
+	_skip_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_skip_button.offset_left = -130
+	_skip_button.offset_top = -54
+	_skip_button.offset_right = -12
+	_skip_button.offset_bottom = -12
+	_skip_button.visible = DevMode.enabled and not _round_end_pending
+	game_panel.add_child(_skip_button)
+
+
+func _update_skip_button_visibility() -> void:
+	if _skip_button == null:
+		return
+	_skip_button.visible = DevMode.enabled and not _round_end_pending
+
+
+func _on_skip_button_pressed() -> void:
+	_skip_round()
+
+
+func _skip_round() -> void:
+	if _round_end_pending:
+		return
+	if not RunManager.has_active_run():
+		return
+
+	# 强制把分数拉到目标线以上，确保判定为通关
+	var round_data := RunManager.get_round()
+	var objective := int(round_data.get("pointObjective", 0))
+	var timer_points := float(round_data.get("timerPoints", 0.0)) * _get_round_event_timer_modifier()
+	var current_time := float(game_state.get("time", 0.0))
+	var current_points := int(game_state.get("points", 0))
+	var penalty := current_time * timer_points
+	var current_total := int(round(current_points - penalty))
+
+	if current_total < objective:
+		# 补齐差额（加一点余量保证稳过）
+		var deficit := objective - current_total + 5
+		game_state["points"] = current_points + deficit
+
+	game_state["end_condition"] = "empty-board"
+	_handle_round_end()
 
 
 func _load_saved_board() -> void:

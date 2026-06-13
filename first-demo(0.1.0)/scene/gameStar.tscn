@@ -63,6 +63,11 @@ custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
 text = "帮助"
 
+[node name="PvPButton" type="Button" parent="MainPanel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+text = "联机对战"
+
 [node name="SettingsButton" type="Button" parent="MainPanel/VBoxContainer" unique_id=1426372673]
 custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
@@ -70,7 +75,7 @@ text = "设置"
 
 [node name="StatusLabel" type="Label" parent="MainPanel/VBoxContainer" unique_id=562544040]
 layout_mode = 2
-text = "点击“开始游戏”进入流程"
+text = "点击"开始游戏"进入流程"
 horizontal_alignment = 1
 
 [node name="StartOptionsPopup" type="PopupPanel" parent="." unique_id=1612928011]
@@ -166,13 +171,34 @@ text = "帮助"
 horizontal_alignment = 1
 
 [node name="HelpText" type="RichTextLabel" parent="HelpPopup/MarginContainer/VBoxContainer" unique_id=112081338]
-custom_minimum_size = Vector2(0, 220)
+custom_minimum_size = Vector2(520, 320)
 layout_mode = 2
 bbcode_enabled = true
-text = "[b]操作说明：[/b]
-1. 点击“开始游戏”进入主流程。
-2. 点击“设置”调整音量和全屏。
-3. 按 ESC 可关闭弹窗。"
+text = "[b]基本操作[/b]
+点击两张可消除的相同牌完成配对。牌必须「可点击」——左侧或右侧有空位，且上方无压牌。
+
+[b]材质系统[/b]
+牌有不同材质（bone → topaz → sapphire → emerald…），材质越高得分越多。在商店购买并合成三张同类牌可升级材质。
+
+[b]龙牌连击[/b]
+连续消除同花色的龙牌可叠加连击倍率，得分=基础分×倍率。龙连击越长，分数越爆炸。
+
+[b]凤牌连击[/b]
+按数字顺序消除凤牌（1→2→3…）可叠加凤连击，每段凤连击权重是龙的 2 倍。
+
+[b]─── 特殊关卡事件 ───[/b]
+
+[color=#ff7722][b]⚡ 急速关卡[/b][/color]（第 3、15 回合）
+时间惩罚大幅增加！每秒扣分是普通关卡的 2.5 倍。越快消牌，损失越少。开局前会有橙色横幅提示。
+
+[color=#ffdd22][b]✨ 黄金消除[/b][/color]（第 7、20 回合）
+本局每次配对成功额外获得 +8 分！专注消牌，分数会急速攀升。开局前会有金色横幅提示。
+
+[color=#88ccff][b]🌪 风暴关卡[/b][/color]（第 10、23 回合）
+每隔 12 秒，棋盘会自动补入新的随机牌！牌越堆越多，尽快清场。开局前会有蓝色横幅提示。
+
+[b]提示[/b]
+按 ESC 可关闭弹窗。商店中可购买新牌和升级材质。"
 fit_content = true
 
 [node name="CloseHelpButton" type="Button" parent="HelpPopup/MarginContainer/VBoxContainer" unique_id=2016382791]
@@ -239,6 +265,10 @@ size_flags_horizontal = 3
 layout_mode = 2
 text = "全屏模式"
 
+[node name="DevModeCheck" type="CheckBox" parent="SettingsPopup/MarginContainer/VBoxContainer" unique_id=998877665]
+layout_mode = 2
+text = "开发者模式"
+
 [node name="SaveStatusLabel" type="Label" parent="SettingsPopup/MarginContainer/VBoxContainer" unique_id=2081980043]
 layout_mode = 2
 text = "存档状态：无"
@@ -259,4 +289,7 @@ text = "保存并关闭"
 [connection signal="value_changed" from="SettingsPopup/MarginContainer/VBoxContainer/MusicRow/MusicSlider" to="." method="_on_music_slider_value_changed"]
 [connection signal="item_selected" from="SettingsPopup/MarginContainer/VBoxContainer/MusicSelectRow/MusicOption" to="." method="_on_music_option_item_selected"]
 [connection signal="toggled" from="SettingsPopup/MarginContainer/VBoxContainer/FullscreenCheck" to="." method="_on_fullscreen_check_toggled"]
+[connection signal="toggled" from="SettingsPopup/MarginContainer/VBoxContainer/DevModeCheck" to="." method="_on_dev_mode_check_toggled"]
 [connection signal="pressed" from="SettingsPopup/MarginContainer/VBoxContainer/CloseSettingsButton" to="." method="_on_close_settings_pressed"]
+[connection signal="pressed" from="MainPanel/VBoxContainer/PvPButton" to="." method="_on_pvp_button_pressed"]
+

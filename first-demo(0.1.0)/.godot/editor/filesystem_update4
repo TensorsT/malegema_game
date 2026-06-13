@@ -1,3 +1,2 @@
-res://scripts/board.gd
-res://scripts/run_manager.gd
-res://scripts/run_state.gd
+res://scripts/pvp_network.gd
+res://scripts/pvp_lobby.gd

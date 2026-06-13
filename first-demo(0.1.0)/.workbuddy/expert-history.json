@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "sessions": {
+    "2aac9cfe581a4fedb79185137e73171a": [
+      {
+        "expertId": "GodotGameScriptEngineer",
+        "name": "节点通",
+        "profession": "Godot游戏脚本工程师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/12-GameDevelopment/GodotGameScriptEngineer/GodotGameScriptEngineer.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/12-GameDevelopment/GodotGameScriptEngineer/GodotGameScriptEngineer_zh.md",
+        "usedAt": 1781358359342,
+        "industryId": "all"
+      },
+      {
+        "expertId": "GodotMultiplayerEngineer",
+        "name": "联网达",
+        "profession": "Godot多人联机工程师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/12-GameDevelopment/GodotMultiplayerEngineer/GodotMultiplayerEngineer.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/12-GameDevelopment/GodotMultiplayerEngineer/GodotMultiplayerEngineer_zh.md",
+        "usedAt": 1781352637628,
+        "industryId": "all"
+      }
+    ]
+  },
+  "lastUpdated": 1781358396208
+}

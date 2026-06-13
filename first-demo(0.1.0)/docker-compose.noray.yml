@@ -1,0 +1,12 @@
+# Noray 联机中继服务器（与 NORAY_SETUP.md 配套）
+# 在 VPS 上：docker compose -f docker-compose.noray.yml up -d
+
+services:
+  noray:
+    image: ghcr.io/foxssake/noray:latest
+    container_name: noray
+    restart: unless-stopped
+    ports:
+      - "8890:8890/tcp"
+      - "8890:8890/udp"
+      - "8809:8809/udp"

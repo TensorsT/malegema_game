@@ -7,6 +7,7 @@ extends Control
 @onready var help_button: Button = $MainPanel/VBoxContainer/HelpButton
 @onready var continue_button: Button = $MainPanel/VBoxContainer/ContinueButton
 @onready var settings_button: Button = $MainPanel/VBoxContainer/SettingsButton
+@onready var pvp_button: Button = $MainPanel/VBoxContainer/PvPButton
 @onready var help_popup: PopupPanel = $HelpPopup
 @onready var settings_popup: PopupPanel = $SettingsPopup
 @onready var start_options_popup: PopupPanel = $StartOptionsPopup
@@ -27,14 +28,20 @@ extends Control
 @onready var music_select_label: Label = $SettingsPopup/MarginContainer/VBoxContainer/MusicSelectRow/MusicSelectLabel
 @onready var music_option: OptionButton = $SettingsPopup/MarginContainer/VBoxContainer/MusicSelectRow/MusicOption
 @onready var fullscreen_checkbox: CheckBox = $SettingsPopup/MarginContainer/VBoxContainer/FullscreenCheck
+@onready var dev_mode_checkbox: CheckBox = $SettingsPopup/MarginContainer/VBoxContainer/DevModeCheck
 @onready var save_status_label: Label = $SettingsPopup/MarginContainer/VBoxContainer/SaveStatusLabel
 @onready var close_settings_button: Button = $SettingsPopup/MarginContainer/VBoxContainer/CloseSettingsButton
 
+var _pvp_coming_soon_dialog: AcceptDialog
+
+
 func _ready() -> void:
 	_apply_whatajong_ui()
+	_setup_pvp_coming_soon_dialog()
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	_setup_music_options()
 	fullscreen_checkbox.button_pressed = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	dev_mode_checkbox.button_pressed = DevMode.enabled
 	start_options_popup.hide()
 
 func _on_start_button_pressed() -> void:
@@ -111,6 +118,10 @@ func _on_fullscreen_check_toggled(toggled_on: bool) -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 
+func _on_dev_mode_check_toggled(toggled_on: bool) -> void:
+	DevMode.enabled = toggled_on
+
+
 func _apply_whatajong_ui() -> void:
 	WhatajongUI.apply_panel(main_panel, WhatajongUI.COLOR_CRACK, Color(0.95, 0.92, 0.84, 0.82), 30, 28)
 	WhatajongUI.apply_panel(help_popup, WhatajongUI.COLOR_DOT, Color(0.96, 0.93, 0.86, 0.92), 24, 20)
@@ -129,6 +140,7 @@ func _apply_whatajong_ui() -> void:
 	WhatajongUI.apply_display_font(continue_button)
 	WhatajongUI.apply_display_font(help_button)
 	WhatajongUI.apply_display_font(settings_button)
+	WhatajongUI.apply_display_font(pvp_button)
 	WhatajongUI.apply_display_font(help_title, WhatajongUI.FONT_SIZE_SUBTITLE)
 	WhatajongUI.apply_display_font(settings_title, WhatajongUI.FONT_SIZE_SUBTITLE)
 	WhatajongUI.apply_display_font(close_help_button)
@@ -137,6 +149,7 @@ func _apply_whatajong_ui() -> void:
 	WhatajongUI.apply_display_font(music_select_label, WhatajongUI.FONT_SIZE_SMALL)
 	WhatajongUI.apply_display_font(music_option, WhatajongUI.FONT_SIZE_SMALL)
 	WhatajongUI.apply_display_font(fullscreen_checkbox, WhatajongUI.FONT_SIZE_SMALL)
+	WhatajongUI.apply_display_font(dev_mode_checkbox, WhatajongUI.FONT_SIZE_SMALL)
 
 	WhatajongUI.apply_button(start_button, WhatajongUI.COLOR_CRACK)
 	WhatajongUI.apply_button(seed_start_button, WhatajongUI.COLOR_BAM)
@@ -146,6 +159,7 @@ func _apply_whatajong_ui() -> void:
 	WhatajongUI.apply_button(continue_button, WhatajongUI.COLOR_BAM)
 	WhatajongUI.apply_button(help_button, WhatajongUI.COLOR_DOT)
 	WhatajongUI.apply_button(settings_button, WhatajongUI.COLOR_BAM)
+	WhatajongUI.apply_button(pvp_button, WhatajongUI.COLOR_DOT)
 	WhatajongUI.apply_button(close_help_button, WhatajongUI.COLOR_DOT, 0.88)
 	WhatajongUI.apply_button(close_settings_button, WhatajongUI.COLOR_BAM, 0.88)
 
@@ -160,6 +174,7 @@ func _apply_whatajong_ui() -> void:
 	WhatajongUI.tint_body_text(music_select_label, WhatajongUI.COLOR_TEXT_SOFT, WhatajongUI.FONT_SIZE_SMALL)
 	WhatajongUI.tint_body_text(save_status_label, WhatajongUI.COLOR_TEXT_SOFT, WhatajongUI.FONT_SIZE_SMALL)
 	WhatajongUI.tint_toggle(fullscreen_checkbox)
+	WhatajongUI.tint_toggle(dev_mode_checkbox)
 	WhatajongUI.tint_rich_text(help_text)
 	_apply_seed_input_style()
 
@@ -194,3 +209,17 @@ func _apply_seed_input_style() -> void:
 
 func _get_seed_text() -> String:
 	return seed_input.text.strip_edges()
+
+
+func _on_pvp_button_pressed() -> void:
+	_pvp_coming_soon_dialog.popup_centered(Vector2i(420, 160))
+
+
+func _setup_pvp_coming_soon_dialog() -> void:
+	_pvp_coming_soon_dialog = AcceptDialog.new()
+	_pvp_coming_soon_dialog.title = "联机对战"
+	_pvp_coming_soon_dialog.dialog_text = "敬请期待"
+	_pvp_coming_soon_dialog.ok_button_text = "好的"
+	_pvp_coming_soon_dialog.dialog_autowrap = true
+	add_child(_pvp_coming_soon_dialog)
+

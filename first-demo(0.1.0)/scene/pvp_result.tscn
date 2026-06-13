@@ -1,0 +1,92 @@
+[gd_scene load_steps=5 format=3 uid="uid://pvp_result"]
+
+[ext_resource type="Script" path="res://scripts/pvp_result.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scene/WhatajongBackdrop.tscn" id="2_backdrop"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.97, 0.94, 0.86, 0.88)
+shadow_color = Color(0.03, 0.04, 0.05, 0.22)
+shadow_size = 24
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
+content_margin_left = 24
+content_margin_top = 20
+content_margin_right = 24
+content_margin_bottom = 20
+
+[node name="PvPResult" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" parent="." instance=ExtResource("2_backdrop")]
+layout_mode = 1
+
+[node name="MainPanel" type="Panel" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = -260.0
+offset_right = 340.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+layout_mode = 3
+mouse_filter = 1
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="MainPanel/VBoxContainer"]
+layout_mode = 2
+text = "对战结算"
+horizontal_alignment = 1
+
+[node name="ResultLabel" type="Label" parent="MainPanel/VBoxContainer"]
+layout_mode = 2
+autowrap_mode = 3
+text = "胜负已分！"
+horizontal_alignment = 1
+
+[node name="ScoreContainer" type="VBoxContainer" parent="MainPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="ButtonSpacer" type="Control" parent="MainPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 16)
+
+[node name="RematchButton" type="Button" parent="MainPanel/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+text = "再战一局"
+
+[node name="LobbyButton" type="Button" parent="MainPanel/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "返回大厅"
+
+[node name="QuitButton" type="Button" parent="MainPanel/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "退出对战"
+
+[connection signal="pressed" from="MainPanel/VBoxContainer/RematchButton" to="." method="_on_rematch_button_pressed"]
+[connection signal="pressed" from="MainPanel/VBoxContainer/LobbyButton" to="." method="_on_lobby_button_pressed"]
+[connection signal="pressed" from="MainPanel/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]

@@ -19,6 +19,11 @@ config/icon="res://icon.svg"
 
 RunManager="*res://scripts/run_manager.gd"
 MusicManager="*res://scripts/music_manager.gd"
+DevMode="*res://scripts/dev_mode.gd"
+Noray="*res://addons/netfox.noray/noray.gd"
+PacketHandshake="*res://addons/netfox.noray/packet-handshake.gd"
+PvPNetwork="*res://scripts/pvp_network.gd"
+PvPState="*res://scripts/pvp_state.gd"
 
 [display]
 
