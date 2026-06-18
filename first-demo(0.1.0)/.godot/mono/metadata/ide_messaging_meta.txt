@@ -1,2 +1,0 @@
-﻿12405
-D:/Programs/Godot/Godot_v4.6.1-stable_mono_win64.exe
